@@ -35,6 +35,34 @@ A comprehensive Project Portfolio Management module implementing Clarity-inspire
 - **To-Do Items**: Granular checklist items within tasks
 - **Status Tracking**: Draft, In Progress, On Hold, Completed, Cancelled
 
+### Task Links & Conversations (Clarity 16.1.1)
+
+- **Links**: Add external URLs to tasks with descriptions
+- **Conversations**: Collaborate on tasks with threaded discussions
+- **@Mentions**: Tag users with notifications and activity scheduling
+- **Baseline Tracking**: Track original schedule vs current schedule
+
+### Widget Library (Clarity 16.1.1)
+
+- **My Widgets**: Personal widget collection
+- **Shared Library**: Organization-wide widget templates
+- **Target Widgets**: Goals and constraints with status indicators
+- **Linked Widgets**: Cross-dashboard widget references
+
+### Subprojects (Clarity 16.1.1)
+
+- **Master Projects**: Create hierarchical project structures
+- **Proxy Tasks**: Automatic summary tasks in master timeline
+- **Aggregated Progress**: Roll-up of subproject metrics
+- **Bi-directional Links**: View parent projects from child
+
+### Baselines (Clarity 16.1.1)
+
+- **Schedule Baselines**: Capture snapshots for comparison
+- **Task Snapshots**: WBS-level baseline data preservation
+- **Variance Tracking**: Calculate schedule slippage
+- **Multiple Revisions**: Track baseline history with versioning
+
 ## Installation
 
 ### Requirements
@@ -166,6 +194,65 @@ Canvas widget configuration.
 | operation | Selection | count/sum/avg/min/max |
 | group_by_field | Char | Field for grouping |
 | filters_json | Text | JSON filter conditions |
+
+### ipai.task.link
+
+External links associated with tasks.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| name | Char | Link display name |
+| url | Char | External URL |
+| task_id | Many2one | Parent task |
+| description | Text | Optional description |
+
+### ipai.task.conversation
+
+Threaded discussions on tasks.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| task_id | Many2one | Parent task |
+| author_id | Many2one | Message author |
+| message | Html | Conversation message |
+| mentioned_user_ids | Many2many | @mentioned users |
+| parent_id | Many2one | Reply-to reference |
+
+### ipai.subproject
+
+Master project to subproject linkages.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| master_project_id | Many2one | Parent/master project |
+| child_project_id | Many2one | Linked subproject |
+| proxy_task_id | Many2one | Auto-created summary task |
+| progress | Float | Aggregated from subproject tasks |
+
+### ipai.project.baseline
+
+Project schedule baseline snapshots.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| name | Char | Baseline name |
+| project_id | Many2one | Parent project |
+| revision | Integer | Baseline version number |
+| is_current | Boolean | Active baseline flag |
+| baseline_start | Date | Captured project start |
+| baseline_finish | Date | Captured project finish |
+| task_snapshot_ids | One2many | Task-level snapshots |
+
+### ipai.widget.library
+
+Reusable widget templates.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| name | Char | Widget name |
+| widget_type | Selection | Widget type configuration |
+| in_library | Boolean | Shared in library flag |
+| created_by_id | Many2one | Widget owner |
 
 ## Usage
 

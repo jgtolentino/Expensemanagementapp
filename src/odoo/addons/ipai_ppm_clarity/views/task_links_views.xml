@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Task Link Views -->
+    <record id="ipai_task_link_tree" model="ir.ui.view">
+        <field name="name">ipai.task.link.tree</field>
+        <field name="model">ipai.task.link</field>
+        <field name="arch" type="xml">
+            <tree string="Task Links" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="url" widget="url"/>
+                <field name="description"/>
+                <field name="task_id" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="ipai_task_link_form" model="ir.ui.view">
+        <field name="name">ipai.task.link.form</field>
+        <field name="model">ipai.task.link</field>
+        <field name="arch" type="xml">
+            <form string="Task Link">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="url" widget="url"/>
+                        </group>
+                        <group>
+                            <field name="task_id"/>
+                            <field name="project_id" readonly="1"/>
+                            <field name="sequence"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Task Conversation Views -->
+    <record id="ipai_task_conversation_tree" model="ir.ui.view">
+        <field name="name">ipai.task.conversation.tree</field>
+        <field name="model">ipai.task.conversation</field>
+        <field name="arch" type="xml">
+            <tree string="Conversations" default_order="create_date desc">
+                <field name="create_date"/>
+                <field name="author_id"/>
+                <field name="message" widget="html"/>
+                <field name="task_id"/>
+                <field name="mentioned_user_ids" widget="many2many_tags"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="ipai_task_conversation_form" model="ir.ui.view">
+        <field name="name">ipai.task.conversation.form</field>
+        <field name="model">ipai.task.conversation</field>
+        <field name="arch" type="xml">
+            <form string="Conversation">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="task_id"/>
+                            <field name="author_id"/>
+                            <field name="parent_id"/>
+                        </group>
+                        <group>
+                            <field name="mentioned_user_ids" widget="many2many_tags"/>
+                            <field name="project_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="message" widget="html"/>
+                    </group>
+                    <notebook>
+                        <page string="Replies" name="replies">
+                            <field name="reply_ids">
+                                <tree>
+                                    <field name="create_date"/>
+                                    <field name="author_id"/>
+                                    <field name="message" widget="html"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Extended Task Form - Links and Conversations Tab -->
+    <record id="ipai_project_task_form_links" model="ir.ui.view">
+        <field name="name">project.task.form.links</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Links" name="links">
+                    <field name="link_ids">
+                        <tree editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"/>
+                            <field name="url" widget="url"/>
+                            <field name="description"/>
+                        </tree>
+                    </field>
+                </page>
+                <page string="Conversations" name="conversations">
+                    <field name="conversation_ids">
+                        <tree default_order="create_date desc">
+                            <field name="create_date"/>
+                            <field name="author_id"/>
+                            <field name="message" widget="html"/>
+                            <field name="mentioned_user_ids" widget="many2many_tags"/>
+                        </tree>
+                    </field>
+                </page>
+                <page string="Baseline" name="baseline">
+                    <group>
+                        <group string="Baseline Data">
+                            <field name="baseline_start"/>
+                            <field name="baseline_finish"/>
+                            <field name="baseline_duration"/>
+                        </group>
+                        <group string="Variance">
+                            <field name="baseline_variance_days"/>
+                            <field name="effort_unit"/>
+                        </group>
+                    </group>
+                    <group>
+                        <button name="save_baseline" string="Save Current as Baseline" type="object" class="btn-secondary"/>
+                        <button name="clear_baseline" string="Clear Baseline" type="object" class="btn-secondary"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Action for Task Links -->
+    <record id="action_ipai_task_links" model="ir.actions.act_window">
+        <field name="name">Task Links</field>
+        <field name="res_model">ipai.task.link</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add links to external resources for this task
+            </p>
+        </field>
+    </record>
+
+    <!-- Action for Task Conversations -->
+    <record id="action_ipai_task_conversations" model="ir.actions.act_window">
+        <field name="name">Task Conversations</field>
+        <field name="res_model">ipai.task.conversation</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Start a conversation about this task
+            </p>
+        </field>
+    </record>
+</odoo>

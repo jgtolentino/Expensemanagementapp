@@ -35,6 +35,20 @@
         action="ipai_canvas_view_action"
         sequence="30"/>
 
+    <menuitem
+        id="menu_clarity_widget_library"
+        name="Widget Library"
+        parent="menu_clarity_canvas"
+        action="action_ipai_widget_library"
+        sequence="40"/>
+
+    <menuitem
+        id="menu_clarity_my_widgets"
+        name="My Widgets"
+        parent="menu_clarity_canvas"
+        action="action_ipai_my_widgets"
+        sequence="50"/>
+
     <!-- Tasks Menu -->
     <menuitem
         id="menu_clarity_tasks"
@@ -76,6 +90,20 @@
         parent="menu_clarity_planning"
         action="ipai_project_phase_action"
         sequence="10"/>
+
+    <menuitem
+        id="menu_clarity_baselines"
+        name="Baselines"
+        parent="menu_clarity_planning"
+        action="action_ipai_project_baselines"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_clarity_subprojects"
+        name="Subprojects"
+        parent="menu_clarity_planning"
+        action="action_ipai_subprojects"
+        sequence="30"/>
 
     <!-- Configuration Menu -->
     <menuitem

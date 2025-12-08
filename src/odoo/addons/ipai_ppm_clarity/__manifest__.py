@@ -54,6 +54,11 @@ Compatible with Odoo 18 Community Edition and OCA modules.
         'views/canvas_views.xml',
         'views/canvas_widget_views.xml',
         'views/canvas_view_views.xml',
+        # Clarity 16.1.1 additional views
+        'views/task_links_views.xml',
+        'views/subproject_views.xml',
+        'views/widget_library_views.xml',
+        'views/baseline_views.xml',
         'views/menus.xml',
         # Data
         'data/canvas_widget_types.xml',

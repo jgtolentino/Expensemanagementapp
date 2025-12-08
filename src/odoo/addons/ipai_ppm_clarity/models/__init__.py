@@ -9,3 +9,8 @@ from . import canvas
 from . import canvas_widget
 from . import canvas_view
 from . import project_project_ext
+# Clarity 16.1.1 additional features
+from . import task_links_conversations
+from . import subproject
+from . import widget_library
+from . import project_baseline
