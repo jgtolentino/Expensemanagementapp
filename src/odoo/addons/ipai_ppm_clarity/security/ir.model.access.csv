@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ipai_project_phase_user,ipai.project.phase.user,model_ipai_project_phase,project.group_project_user,1,1,1,0
+access_ipai_project_phase_manager,ipai.project.phase.manager,model_ipai_project_phase,project.group_project_manager,1,1,1,1
+access_ipai_task_todo_user,ipai.task.todo.user,model_ipai_task_todo,project.group_project_user,1,1,1,1
+access_ipai_task_todo_manager,ipai.task.todo.manager,model_ipai_task_todo,project.group_project_manager,1,1,1,1
+access_ipai_task_dependency_user,ipai.task.dependency.user,model_ipai_task_dependency,project.group_project_user,1,1,1,0
+access_ipai_task_dependency_manager,ipai.task.dependency.manager,model_ipai_task_dependency,project.group_project_manager,1,1,1,1
+access_ipai_canvas_user,ipai.canvas.user,model_ipai_canvas,project.group_project_user,1,1,1,0
+access_ipai_canvas_manager,ipai.canvas.manager,model_ipai_canvas,project.group_project_manager,1,1,1,1
+access_ipai_canvas_widget_user,ipai.canvas.widget.user,model_ipai_canvas_widget,project.group_project_user,1,1,1,0
+access_ipai_canvas_widget_manager,ipai.canvas.widget.manager,model_ipai_canvas_widget,project.group_project_manager,1,1,1,1
+access_ipai_canvas_view_user,ipai.canvas.view.user,model_ipai_canvas_view,project.group_project_user,1,1,1,1
+access_ipai_canvas_view_manager,ipai.canvas.view.manager,model_ipai_canvas_view,project.group_project_manager,1,1,1,1

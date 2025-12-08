@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Widget type reference data - for documentation/help purposes -->
+        <!-- This demonstrates the available widget types and their typical configurations -->
+
+        <!-- No actual data records needed - widget types are defined in the model selection field -->
+        <!-- This file serves as configuration reference -->
+
+    </data>
+</odoo>

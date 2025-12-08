@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Canvas Tree View -->
+    <record id="ipai_canvas_view_tree" model="ir.ui.view">
+        <field name="name">ipai.canvas.view.tree</field>
+        <field name="model">ipai.canvas</field>
+        <field name="arch" type="xml">
+            <tree string="Canvases">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="layout_columns"/>
+                <field name="widget_count"/>
+                <field name="view_count"/>
+                <field name="is_default" widget="boolean_toggle"/>
+                <field name="owner_id" widget="many2one_avatar_user"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Canvas Form View -->
+    <record id="ipai_canvas_view_form" model="ir.ui.view">
+        <field name="name">ipai.canvas.view.form</field>
+        <field name="model">ipai.canvas</field>
+        <field name="arch" type="xml">
+            <form string="Canvas">
+                <header>
+                    <button name="action_toggle_config_mode" string="Configure" type="object" class="btn-primary" icon="fa-cog"/>
+                    <button name="action_set_as_default" string="Set as Default" type="object" invisible="is_default == True"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" name="action_view_widgets" type="object" icon="fa-th-large">
+                            <field name="widget_count" widget="statinfo" string="Widgets"/>
+                        </button>
+                        <button class="oe_stat_button" name="action_view_saved_views" type="object" icon="fa-bookmark">
+                            <field name="view_count" widget="statinfo" string="Saved Views"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Default" bg_color="bg-success" invisible="is_default == False"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Canvas Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="project_id"/>
+                            <field name="owner_id" widget="many2one_avatar_user"/>
+                            <field name="is_default"/>
+                        </group>
+                        <group>
+                            <field name="layout_columns" widget="radio"/>
+                            <field name="config_mode" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <group string="Widget Limits">
+                        <group>
+                            <div class="alert alert-info" role="alert">
+                                <strong>Widget Limits:</strong>
+                                <ul class="mb-0">
+                                    <li>Maximum 10 total widgets per canvas</li>
+                                    <li>Maximum 7 table widgets per canvas</li>
+                                </ul>
+                            </div>
+                        </group>
+                        <group>
+                            <field name="chart_widget_count" string="Charts/Tiles"/>
+                            <field name="table_widget_count" string="Tables"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="Canvas description..."/>
+                        </page>
+                        <page string="Widgets" name="widgets">
+                            <field name="widget_ids">
+                                <tree>
+                                    <field name="title"/>
+                                    <field name="widget_type" widget="badge"/>
+                                    <field name="target_model"/>
+                                    <field name="operation"/>
+                                    <field name="col_span"/>
+                                    <field name="position_x"/>
+                                    <field name="position_y"/>
+                                    <field name="color" widget="color"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Saved Views" name="views">
+                            <field name="view_ids">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="user_id" widget="many2one_avatar_user"/>
+                                    <field name="is_default" widget="boolean_toggle"/>
+                                    <field name="is_favorite" widget="boolean_toggle"/>
+                                    <field name="is_shared" widget="boolean_toggle"/>
+                                    <field name="write_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Canvas Kanban View -->
+    <record id="ipai_canvas_view_kanban" model="ir.ui.view">
+        <field name="name">ipai.canvas.view.kanban</field>
+        <field name="model">ipai.canvas</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="widget_count"/>
+                <field name="is_default"/>
+                <field name="owner_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_card_header">
+                                <div class="o_kanban_card_header_title">
+                                    <div class="o_primary">
+                                        <field name="name"/>
+                                        <span t-if="record.is_default.raw_value" class="badge bg-success ms-2">Default</span>
+                                    </div>
+                                    <div class="o_secondary">
+                                        <field name="project_id"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="container o_kanban_card_content">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <span class="o_value"><field name="widget_count"/></span>
+                                        <span class="o_label">Widgets</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="o_value"><field name="layout_columns"/></span>
+                                        <span class="o_label">Columns</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_kanban_card_manage_pane dropdown-menu" role="menu">
+                                <div class="o_kanban_card_manage_section o_kanban_manage_reports">
+                                    <a role="menuitem" type="edit">Edit</a>
+                                    <a role="menuitem" name="action_view_widgets" type="object">View Widgets</a>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Canvas Search View -->
+    <record id="ipai_canvas_view_search" model="ir.ui.view">
+        <field name="name">ipai.canvas.view.search</field>
+        <field name="model">ipai.canvas</field>
+        <field name="arch" type="xml">
+            <search string="Search Canvases">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="owner_id"/>
+                <filter string="My Canvases" name="my_canvases" domain="[('owner_id', '=', uid)]"/>
+                <filter string="Default" name="default" domain="[('is_default', '=', True)]"/>
+                <separator/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Project" name="project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Owner" name="owner" context="{'group_by': 'owner_id'}"/>
+                    <filter string="Layout" name="layout" context="{'group_by': 'layout_columns'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="ipai_canvas_action" model="ir.actions.act_window">
+        <field name="name">Canvases</field>
+        <field name="res_model">ipai.canvas</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="search_view_id" ref="ipai_canvas_view_search"/>
+        <field name="context">{'search_default_my_canvases': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first project canvas
+            </p>
+            <p>
+                Canvases provide customizable dashboards with widgets for project metrics.
+            </p>
+        </field>
+    </record>
+</odoo>

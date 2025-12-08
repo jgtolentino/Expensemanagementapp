@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Project Phase Tree View -->
+    <record id="ipai_project_phase_view_tree" model="ir.ui.view">
+        <field name="name">ipai.project.phase.view.tree</field>
+        <field name="model">ipai.project.phase</field>
+        <field name="arch" type="xml">
+            <tree string="Phases" editable="bottom" decoration-muted="state == 'cancelled'" decoration-success="state == 'completed'">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state == 'on_hold'" decoration-success="state == 'completed'" decoration-danger="state == 'cancelled'" decoration-primary="state == 'in_progress'"/>
+                <field name="progress" widget="progressbar"/>
+                <field name="task_count"/>
+                <field name="manager_id" widget="many2one_avatar_user"/>
+                <field name="planned_hours" sum="Total Planned"/>
+                <field name="actual_hours" sum="Total Actual"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Project Phase Form View -->
+    <record id="ipai_project_phase_view_form" model="ir.ui.view">
+        <field name="name">ipai.project.phase.view.form</field>
+        <field name="model">ipai.project.phase</field>
+        <field name="arch" type="xml">
+            <form string="Phase">
+                <header>
+                    <button name="action_start" string="Start" type="object" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_complete" string="Complete" type="object" class="btn-success" invisible="state not in ['in_progress', 'on_hold']"/>
+                    <button name="action_hold" string="On Hold" type="object" invisible="state != 'in_progress'"/>
+                    <button name="action_cancel" string="Cancel" type="object" invisible="state in ['completed', 'cancelled']"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" name="action_view_tasks" type="object" icon="fa-tasks">
+                            <field name="task_count" widget="statinfo" string="Tasks"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Phase Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="project_id"/>
+                            <field name="manager_id" widget="many2one_avatar_user"/>
+                            <field name="color" widget="color_picker"/>
+                        </group>
+                        <group>
+                            <field name="start_date"/>
+                            <field name="end_date"/>
+                            <field name="planned_start"/>
+                            <field name="planned_end"/>
+                        </group>
+                    </group>
+                    <group string="Progress &amp; Effort">
+                        <group>
+                            <field name="progress" widget="progressbar"/>
+                            <field name="computed_start"/>
+                            <field name="computed_end"/>
+                        </group>
+                        <group>
+                            <field name="planned_hours"/>
+                            <field name="actual_hours"/>
+                            <field name="etc_hours"/>
+                            <field name="eac_hours"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="Phase description..."/>
+                        </page>
+                        <page string="Tasks" name="tasks">
+                            <field name="task_ids">
+                                <tree>
+                                    <field name="wbs_code"/>
+                                    <field name="name"/>
+                                    <field name="user_ids" widget="many2many_avatar_user"/>
+                                    <field name="planned_date_begin"/>
+                                    <field name="date_deadline"/>
+                                    <field name="percent_complete" widget="progressbar"/>
+                                    <field name="is_critical" widget="boolean_toggle"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Project Phase Kanban View -->
+    <record id="ipai_project_phase_view_kanban" model="ir.ui.view">
+        <field name="name">ipai.project.phase.view.kanban</field>
+        <field name="model">ipai.project.phase</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name"/>
+                <field name="state"/>
+                <field name="color"/>
+                <field name="progress"/>
+                <field name="task_count"/>
+                <field name="manager_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click" t-att-style="'border-left: 4px solid ' + (record.color.raw_value ? kanban_color(record.color.raw_value) : '#0078D4')">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_title">
+                                    <strong><field name="name"/></strong>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <field name="progress" widget="progressbar"/>
+                                    <div class="mt-2">
+                                        <span class="badge bg-secondary"><field name="task_count"/> Tasks</span>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="start_date"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="manager_id" widget="many2one_avatar_user"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Project Phase Search View -->
+    <record id="ipai_project_phase_view_search" model="ir.ui.view">
+        <field name="name">ipai.project.phase.view.search</field>
+        <field name="model">ipai.project.phase</field>
+        <field name="arch" type="xml">
+            <search string="Search Phases">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="manager_id"/>
+                <filter string="My Phases" name="my_phases" domain="[('manager_id', '=', uid)]"/>
+                <separator/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="In Progress" name="in_progress" domain="[('state', '=', 'in_progress')]"/>
+                <filter string="Completed" name="completed" domain="[('state', '=', 'completed')]"/>
+                <separator/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Project" name="project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Status" name="status" context="{'group_by': 'state'}"/>
+                    <filter string="Manager" name="manager" context="{'group_by': 'manager_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="ipai_project_phase_action" model="ir.actions.act_window">
+        <field name="name">Phases</field>
+        <field name="res_model">ipai.project.phase</field>
+        <field name="view_mode">tree,kanban,form</field>
+        <field name="search_view_id" ref="ipai_project_phase_view_search"/>
+        <field name="context">{'search_default_in_progress': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first project phase
+            </p>
+            <p>
+                Phases help organize tasks into logical groups within a project.
+            </p>
+        </field>
+    </record>
+</odoo>

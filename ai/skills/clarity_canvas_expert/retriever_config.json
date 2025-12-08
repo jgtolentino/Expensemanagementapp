@@ -1,0 +1,70 @@
+{
+  "name": "clarity_docs_retriever",
+  "description": "Retrieves relevant documentation about Clarity Canvas and Task features",
+  "type": "vector",
+
+  "embedding": {
+    "model": "text-embedding-3-small",
+    "dimensions": 1536,
+    "provider": "openai"
+  },
+
+  "vector_store": {
+    "type": "supabase_pgvector",
+    "table": "clarity_docs_embeddings",
+    "schema": "public",
+    "columns": {
+      "id": "id",
+      "content": "content",
+      "embedding": "embedding",
+      "metadata": "metadata"
+    }
+  },
+
+  "retrieval": {
+    "top_k": 5,
+    "similarity_threshold": 0.7,
+    "max_tokens": 4000,
+    "include_metadata": true
+  },
+
+  "documents": {
+    "sources": [
+      {
+        "type": "directory",
+        "path": "src/odoo/addons/ipai_ppm_clarity",
+        "patterns": ["*.py", "*.xml"],
+        "exclude": ["__pycache__", "*.pyc"]
+      },
+      {
+        "type": "directory",
+        "path": "src/apps/ppm-canvas",
+        "patterns": ["*.ts", "*.tsx"],
+        "exclude": ["node_modules", "*.d.ts"]
+      },
+      {
+        "type": "directory",
+        "path": "docs/clarity",
+        "patterns": ["*.md"]
+      }
+    ],
+
+    "chunking": {
+      "strategy": "recursive",
+      "chunk_size": 1000,
+      "chunk_overlap": 200,
+      "separators": ["\n\n", "\n", ". ", " "]
+    },
+
+    "metadata_extraction": {
+      "enabled": true,
+      "fields": ["file_path", "file_type", "module", "class_name", "function_name"]
+    }
+  },
+
+  "indexing": {
+    "batch_size": 100,
+    "parallel_workers": 4,
+    "update_strategy": "incremental"
+  }
+}

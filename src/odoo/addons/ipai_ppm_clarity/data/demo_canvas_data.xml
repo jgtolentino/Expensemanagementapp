@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Demo Canvas -->
+        <record id="demo_canvas_main" model="ipai.canvas">
+            <field name="name">Project Dashboard</field>
+            <field name="project_id" ref="demo_project_clarity"/>
+            <field name="layout_columns">6</field>
+            <field name="is_default">True</field>
+            <field name="description">Main project dashboard showing key metrics and task status.</field>
+        </record>
+
+        <!-- Demo Widgets -->
+        <!-- Number Tile: Total Tasks -->
+        <record id="demo_widget_total_tasks" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">number_tile</field>
+            <field name="title">Total Tasks</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">count</field>
+            <field name="format_type">number</field>
+            <field name="color">#0078D4</field>
+            <field name="col_span">1</field>
+            <field name="row_span">1</field>
+            <field name="position_x">0</field>
+            <field name="position_y">0</field>
+        </record>
+
+        <!-- Number Tile: Critical Tasks -->
+        <record id="demo_widget_critical_tasks" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">number_tile</field>
+            <field name="title">Critical Tasks</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">count</field>
+            <field name="format_type">number</field>
+            <field name="color">#D83B01</field>
+            <field name="col_span">1</field>
+            <field name="row_span">1</field>
+            <field name="position_x">1</field>
+            <field name="position_y">0</field>
+            <field name="filters_json">[{"field": "is_critical", "operator": "=", "value": true}]</field>
+        </record>
+
+        <!-- Number Tile: Open To-Dos -->
+        <record id="demo_widget_open_todos" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">number_tile</field>
+            <field name="title">Open To-Dos</field>
+            <field name="target_model">ipai.task.todo</field>
+            <field name="operation">count</field>
+            <field name="format_type">number</field>
+            <field name="color">#107C10</field>
+            <field name="col_span">1</field>
+            <field name="row_span">1</field>
+            <field name="position_x">2</field>
+            <field name="position_y">0</field>
+            <field name="filters_json">[{"field": "state", "operator": "=", "value": "open"}]</field>
+        </record>
+
+        <!-- Progress Ring: Overall Progress -->
+        <record id="demo_widget_progress" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">progress_ring</field>
+            <field name="title">Overall Progress</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">avg</field>
+            <field name="format_type">percentage</field>
+            <field name="color">#4B38B3</field>
+            <field name="col_span">1</field>
+            <field name="row_span">1</field>
+            <field name="position_x">3</field>
+            <field name="position_y">0</field>
+            <field name="actual_field">percent_complete</field>
+            <field name="target_value">100</field>
+        </record>
+
+        <!-- Number Tile: Total Hours -->
+        <record id="demo_widget_total_hours" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">number_tile</field>
+            <field name="title">Planned Hours</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">sum</field>
+            <field name="format_type">hours</field>
+            <field name="color">#00B294</field>
+            <field name="col_span">1</field>
+            <field name="row_span">1</field>
+            <field name="position_x">4</field>
+            <field name="position_y">0</field>
+            <field name="aggregate_field">planned_hours</field>
+        </record>
+
+        <!-- Number Tile: Milestones -->
+        <record id="demo_widget_milestones" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">number_tile</field>
+            <field name="title">Milestones</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">count</field>
+            <field name="format_type">number</field>
+            <field name="color">#F2C811</field>
+            <field name="col_span">1</field>
+            <field name="row_span">1</field>
+            <field name="position_x">5</field>
+            <field name="position_y">0</field>
+            <field name="filters_json">[{"field": "is_milestone", "operator": "=", "value": true}]</field>
+        </record>
+
+        <!-- Pie Chart: Tasks by Phase -->
+        <record id="demo_widget_pie_phase" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">pie</field>
+            <field name="title">Tasks by Phase</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">count</field>
+            <field name="format_type">number</field>
+            <field name="color">#0078D4</field>
+            <field name="col_span">2</field>
+            <field name="row_span">2</field>
+            <field name="position_x">0</field>
+            <field name="position_y">1</field>
+            <field name="group_by_field">phase_id</field>
+            <field name="sort_order">desc</field>
+            <field name="limit">10</field>
+        </record>
+
+        <!-- Bar Chart: Tasks by Type -->
+        <record id="demo_widget_bar_type" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">bar</field>
+            <field name="title">Tasks by Type</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">count</field>
+            <field name="format_type">number</field>
+            <field name="color">#4B38B3</field>
+            <field name="col_span">2</field>
+            <field name="row_span">2</field>
+            <field name="position_x">2</field>
+            <field name="position_y">1</field>
+            <field name="group_by_field">task_type</field>
+            <field name="sort_order">desc</field>
+            <field name="limit">5</field>
+        </record>
+
+        <!-- Table: Recent Tasks -->
+        <record id="demo_widget_table_tasks" model="ipai.canvas.widget">
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="widget_type">table</field>
+            <field name="title">Recent Tasks</field>
+            <field name="target_model">project.task</field>
+            <field name="operation">count</field>
+            <field name="format_type">number</field>
+            <field name="color">#107C10</field>
+            <field name="col_span">2</field>
+            <field name="row_span">2</field>
+            <field name="position_x">4</field>
+            <field name="position_y">1</field>
+            <field name="sort_by">write_date</field>
+            <field name="sort_order">desc</field>
+            <field name="limit">10</field>
+            <field name="table_columns_json">[{"field": "wbs_code", "label": "WBS"}, {"field": "name", "label": "Task"}, {"field": "percent_complete", "label": "Progress"}, {"field": "is_critical", "label": "Critical"}]</field>
+        </record>
+
+        <!-- Demo Saved View -->
+        <record id="demo_canvas_view_default" model="ipai.canvas.view">
+            <field name="name">Default Dashboard</field>
+            <field name="canvas_id" ref="demo_canvas_main"/>
+            <field name="is_default">True</field>
+            <field name="is_shared">True</field>
+            <field name="layout_columns">6</field>
+            <field name="config_json">{"layout": "6", "widgets": {}}</field>
+        </record>
+
+    </data>
+</odoo>

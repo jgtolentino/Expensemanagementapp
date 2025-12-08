@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Task To-Do Tree View -->
+    <record id="ipai_task_todo_view_tree" model="ir.ui.view">
+        <field name="name">ipai.task.todo.view.tree</field>
+        <field name="model">ipai.task.todo</field>
+        <field name="arch" type="xml">
+            <tree string="To-Dos" editable="bottom" decoration-muted="state == 'done'" decoration-danger="is_overdue == True">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="task_id"/>
+                <field name="project_id"/>
+                <field name="due_date"/>
+                <field name="owner_id" widget="many2one_avatar_user"/>
+                <field name="priority" widget="priority"/>
+                <field name="state" widget="badge" decoration-success="state == 'done'" decoration-warning="state == 'open'"/>
+                <field name="is_overdue" column_invisible="True"/>
+                <button name="action_done" string="Done" type="object" icon="fa-check" invisible="state == 'done'"/>
+                <button name="action_reopen" string="Reopen" type="object" icon="fa-undo" invisible="state == 'open'"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Task To-Do Form View -->
+    <record id="ipai_task_todo_view_form" model="ir.ui.view">
+        <field name="name">ipai.task.todo.view.form</field>
+        <field name="model">ipai.task.todo</field>
+        <field name="arch" type="xml">
+            <form string="To-Do Item">
+                <header>
+                    <button name="action_done" string="Mark Done" type="object" class="btn-primary" invisible="state == 'done'"/>
+                    <button name="action_reopen" string="Reopen" type="object" invisible="state == 'open'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="To-Do description"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="task_id"/>
+                            <field name="project_id"/>
+                            <field name="owner_id" widget="many2one_avatar_user"/>
+                        </group>
+                        <group>
+                            <field name="due_date"/>
+                            <field name="completed_date" invisible="state == 'open'"/>
+                            <field name="priority" widget="priority"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="Additional details..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Task To-Do Kanban View -->
+    <record id="ipai_task_todo_view_kanban" model="ir.ui.view">
+        <field name="name">ipai.task.todo.view.kanban</field>
+        <field name="model">ipai.task.todo</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name"/>
+                <field name="state"/>
+                <field name="priority"/>
+                <field name="due_date"/>
+                <field name="owner_id"/>
+                <field name="is_overdue"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click #{record.is_overdue.raw_value ? 'bg-danger-light' : ''}">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                    </div>
+                                    <field name="priority" widget="priority"/>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <field name="task_id"/>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="due_date"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="owner_id" widget="many2one_avatar_user"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Task To-Do Search View -->
+    <record id="ipai_task_todo_view_search" model="ir.ui.view">
+        <field name="name">ipai.task.todo.view.search</field>
+        <field name="model">ipai.task.todo</field>
+        <field name="arch" type="xml">
+            <search string="Search To-Dos">
+                <field name="name"/>
+                <field name="task_id"/>
+                <field name="project_id"/>
+                <field name="owner_id"/>
+                <filter string="My To-Dos" name="my_todos" domain="[('owner_id', '=', uid)]"/>
+                <separator/>
+                <filter string="Open" name="open" domain="[('state', '=', 'open')]"/>
+                <filter string="Done" name="done" domain="[('state', '=', 'done')]"/>
+                <filter string="Overdue" name="overdue" domain="[('is_overdue', '=', True)]"/>
+                <separator/>
+                <filter string="Due Today" name="due_today" domain="[('due_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Due This Week" name="due_week" domain="[('due_date', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')), ('due_date', '&lt;=', (context_today() + datetime.timedelta(days=6-context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Task" name="task" context="{'group_by': 'task_id'}"/>
+                    <filter string="Project" name="project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Owner" name="owner" context="{'group_by': 'owner_id'}"/>
+                    <filter string="Status" name="status" context="{'group_by': 'state'}"/>
+                    <filter string="Priority" name="prio" context="{'group_by': 'priority'}"/>
+                    <filter string="Due Date" name="due" context="{'group_by': 'due_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="ipai_task_todo_action" model="ir.actions.act_window">
+        <field name="name">To-Dos</field>
+        <field name="res_model">ipai.task.todo</field>
+        <field name="view_mode">tree,kanban,form</field>
+        <field name="search_view_id" ref="ipai_task_todo_view_search"/>
+        <field name="context">{'search_default_open': 1, 'search_default_my_todos': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first to-do item
+            </p>
+            <p>
+                To-dos are checklist items within tasks to track granular work.
+            </p>
+        </field>
+    </record>
+</odoo>
