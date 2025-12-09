@@ -187,3 +187,140 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Wiki Content Styles */
+.wiki-content {
+  color: #334155;
+  line-height: 1.8;
+}
+
+.wiki-content h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #0f172a;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.wiki-content h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: #1e293b;
+}
+
+.wiki-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #334155;
+}
+
+.wiki-content p {
+  margin-bottom: 1.25rem;
+}
+
+.wiki-content ul,
+.wiki-content ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.75rem;
+}
+
+.wiki-content li {
+  margin-bottom: 0.5rem;
+}
+
+.wiki-content code {
+  background-color: #f1f5f9;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  font-family: 'Monaco', 'Courier New', monospace;
+  color: #e11d48;
+}
+
+.wiki-content pre {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 1.25rem;
+}
+
+.wiki-content pre code {
+  background-color: transparent;
+  padding: 0;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.wiki-content a {
+  color: #0891b2;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.wiki-content a:hover {
+  color: #06b6d4;
+}
+
+.wiki-content strong {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.wiki-content em {
+  font-style: italic;
+}
+
+.wiki-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.wiki-content table thead {
+  background-color: #f8fafc;
+}
+
+.wiki-content table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+}
+
+.wiki-content table td {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+}
+
+.wiki-content table tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.wiki-content hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 2rem 0;
+}
+
+.wiki-content blockquote {
+  border-left: 4px solid #0891b2;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #475569;
+}
+
+.wiki-content input[type="checkbox"] {
+  margin-right: 0.5rem;
+  accent-color: #0891b2;
+}

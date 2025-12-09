@@ -7,7 +7,7 @@ import GearApp from './GearApp';
 import FinancePPMApp from './FinancePPMApp';
 import ProcureApp from './ProcureApp';
 import CreativeWorkroomApp from './CreativeWorkroomApp';
-import WikiDocsApp from './WikiDocsApp';
+import WikiDocsApp from './WikiDocsAppNew';
 import BIApp from './BIApp';
 import LoginScreen from './components/LoginScreen';
 import UserMenu from './components/UserMenu';

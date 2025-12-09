@@ -1,0 +1,48 @@
+Entry ID,Task ID,Task Name,Employee Code,Employee Name,Date,Hours,Billable,Effort Type,Notes,Project Phase,Status
+TE-2025-001,CT-0001,Process Payroll Final Pay SL Conversions,RIM,Rey Meran,2025-01-15,8.0,No,Execution,Processed payroll data and verified final pay calculations,1.0,Approved
+TE-2025-002,CT-0001,Process Payroll Final Pay SL Conversions,RIM,Rey Meran,2025-01-16,6.0,No,Execution,Completed SL conversions and posted journal entries,1.0,Approved
+TE-2025-003,CT-0002,Calculate Tax Provision and PPB Provision,RIM,Rey Meran,2025-01-15,6.0,No,Analysis,Pulled tax data and calculated provisions,1.0,Approved
+TE-2025-004,CT-0002,Calculate Tax Provision and PPB Provision,RIM,Rey Meran,2025-01-16,4.0,No,Execution,Reconciled to GL and posted entries,1.0,Approved
+TE-2025-005,CT-0003,Compile Input VAT and VAT Report,JLI,Jenny Li,2025-01-15,8.0,No,Data Collection,Compiled invoices and calculated input VAT,1.0,Approved
+TE-2025-006,CT-0003,Compile Input VAT and VAT Report,JLI,Jenny Li,2025-01-16,7.0,No,Reporting,Prepared VAT report and posted entries,1.0,Approved
+TE-2025-007,CT-0004,Record monthly VAT Report entries,JAP,Jose Antonio Perez,2025-01-15,6.0,No,Execution,Compiled VAT data and prepared report,1.0,Approved
+TE-2025-008,CT-0004,Record monthly VAT Report entries,JAP,Jose Antonio Perez,2025-01-16,5.0,No,Execution,Posted additional VAT entries,1.0,Submitted
+TE-2025-009,CT-0005,Process CA Liquidations (Project),LAS,Amor Lasaga,2025-01-15,7.0,No,Review,Gathered CA documents and verified allocations,1.0,Approved
+TE-2025-010,CT-0005,Process CA Liquidations (Project),LAS,Amor Lasaga,2025-01-16,4.0,No,Execution,Checked receipts and posted entries,1.0,Submitted
+TE-2025-011,CT-0006,Process CA Liquidations (Employee),RMQB,Sally Brillantes,2025-01-15,6.0,No,Review,Gathered employee CA and verified forms,1.0,Approved
+TE-2025-012,CT-0006,Process CA Liquidations (Employee),RMQB,Sally Brillantes,2025-01-16,5.0,No,Execution,Checked receipts and posted entries,1.0,Approved
+TE-2025-013,CT-0007,Record Consultancy Fees and General Expense Accruals,RIM,Rey Meran,2025-01-16,7.0,No,Analysis,Reviewed contracts and calculated fees,2.0,Approved
+TE-2025-014,CT-0007,Record Consultancy Fees and General Expense Accruals,RIM,Rey Meran,2025-01-17,5.0,No,Execution,Identified unbilled items and posted accruals,2.0,Submitted
+TE-2025-015,CT-0008,Accrue Management/Royalty fees Innovations,BOM,Beng Manalo,2025-01-16,6.0,No,Analysis,Calculated management and royalty fees,2.0,Draft
+TE-2025-016,CT-0008,Accrue Management/Royalty fees Innovations,BOM,Beng Manalo,2025-01-17,4.0,No,Execution,Calculated innovations and posted accruals,2.0,Draft
+TE-2025-017,CT-0009,Accrue Production Retainer Media Commission OOPC,JPAL,Jinky Paladin,2025-01-16,8.0,No,Analysis,Reviewed client contracts and calculated accruals,2.0,Submitted
+TE-2025-018,CT-0009,Accrue Production Retainer Media Commission OOPC,JPAL,Jinky Paladin,2025-01-17,6.0,No,Execution,Calculated OOPC and posted entries,2.0,Draft
+TE-2025-019,CT-0010,Accrue recurring Expenses,LAS,Amor Lasaga,2025-01-16,5.0,No,Analysis,Identified recurring expenses,2.0,Draft
+TE-2025-020,CT-0010,Accrue recurring Expenses,LAS,Amor Lasaga,2025-01-17,4.0,No,Execution,Calculated monthly amounts and posted accruals,2.0,Draft
+TE-2025-021,CT-0011,Capitalize Other Computer Related Costs,LAS,Amor Lasaga,2025-01-16,4.0,No,Analysis,Identified capitalization costs,2.0,Draft
+TE-2025-022,CT-0012,Accrue Employee Cellphone Allowance,RMQB,Sally Brillantes,2025-01-16,3.0,No,Data Collection,Pulled allowance list and verified eligibility,2.0,Draft
+TE-2025-023,CT-0013,Compile documents for revenue accruals,JRMO,Jerome Olarte,2025-01-16,7.0,No,Data Collection,Gathered support documents and compiled schedules,2.0,Submitted
+TE-2025-024,CT-0014,Record Rental Income/Expense and hospitalization amortization,RIM,Rey Meran,2025-01-17,5.0,No,Analysis,Verified agreements and calculated rental,2.0,Draft
+TE-2025-025,CT-0015,Record Depreciation Amortization (vehicles/LOA/tech),BOM,Beng Manalo,2025-01-17,6.0,No,Execution,Ran depreciation schedules,2.0,Draft
+TE-2025-026,CT-0016,Record Corporate Insurance accruals,BOM,Beng Manalo,2025-01-17,4.0,No,Analysis,Reviewed insurance policies,2.0,Draft
+TE-2025-027,CT-0017,Record bank charges FX revaluation stock option,BOM,Beng Manalo,2025-01-17,5.0,No,Data Collection,Downloaded bank statements,2.0,Draft
+TE-2025-028,CT-0018,Amortize Business Permit and LOA,JPAL,Jinky Paladin,2025-01-17,3.0,No,Execution,Pulled schedule and calculated monthly amounts,2.0,Draft
+TE-2025-029,CT-0019,Accrue monthly Audit Fees,JPAL,Jinky Paladin,2025-01-17,2.0,No,Execution,Reviewed agreement and calculated accrual,2.0,Draft
+TE-2025-030,CT-0020,Record Intercompany Rental Expense/Income,JPAL,Jinky Paladin,2025-01-17,4.0,No,Analysis,Identified IC rentals and calculated amounts,2.0,Draft
+TE-2025-031,CT-0021,Revalue Intercompany Balances,JPAL,Jinky Paladin,2025-01-17,5.0,No,Analysis,Pulled IC report and got FX rates,2.0,Draft
+TE-2025-032,CT-0022,Record lease interest and prepaid fee amortization,LAS,Amor Lasaga,2025-01-17,6.0,No,Analysis,Pulled lease schedules and calculated interest,2.0,Draft
+TE-2025-033,CT-0023,Reclassify OOP to WIP and WIP to OOP,JPAL,Jinky Paladin,2025-01-18,7.0,No,Analysis,Pulled balances and identified reclass items,3.0,Draft
+TE-2025-034,CT-0024,Prepare WIP schedule summary per Job#,JRMO,Jerome Olarte,2025-01-18,8.0,No,Reporting,Pulled WIP by job and reconciled to GL,3.0,Draft
+TE-2025-035,CT-0025,Process reversal entries for prior month accruals,RIM,Rey Meran,2025-01-18,5.0,No,Execution,Pulled prior JEs and prepared reversals,4.0,Draft
+TE-2025-036,CT-0026,Process reversal entries (trainings production),BOM,Beng Manalo,2025-01-18,4.0,No,Execution,Identified accruals and prepared reversals,4.0,Draft
+TE-2025-037,CT-0027,Process GL and Marketing Expense reclassifications,LAS,Amor Lasaga,2025-01-18,6.0,No,Analysis,Identified reclass items and prepared entries,4.0,Draft
+TE-2025-038,CT-0028,Reclassify General Expense to Wireless and Meals,RMQB,Sally Brillantes,2025-01-18,4.0,No,Execution,Identified miscodings and prepared reclass,4.0,Draft
+TE-2025-039,CT-0029,Transfer Job Codes for consultancy/corporate,JAP,Jose Antonio Perez,2025-01-18,5.0,No,Analysis,Identified transfers and verified allocations,4.0,Draft
+TE-2025-040,CT-0030,Record GL reclassifications for month-end,JAP,Jose Antonio Perez,2025-01-18,4.0,No,Execution,Prepared adjustments and posted entries,4.0,Draft
+TE-2025-041,CT-0031,Prepare Working Capital AR reports,JPAL,Jinky Paladin,2025-01-19,6.0,No,Reporting,Pulled AR aging and analyzed buckets,4.0,Draft
+TE-2025-042,CT-0032,Prepare AP Aging for Working Capital,LAS,Amor Lasaga,2025-01-19,5.0,No,Reporting,Pulled AP aging and analyzed buckets,4.0,Draft
+TE-2025-043,CT-0033,Prepare AP Aging with detailed invoice status,JLI,Jenny Li,2025-01-19,7.0,No,Reporting,Pulled AP listing and analyzed by date,4.0,Draft
+TE-2025-044,CT-0034,Prepare HOW's summary report,LAS,Amor Lasaga,2025-01-19,5.0,No,Reporting,Compiled HOW data and summarized by category,4.0,Draft
+TE-2025-045,CT-0035,Prepare Flash Wins & Losses and Revenue reports,BOM,Beng Manalo,2025-01-20,8.0,No,Reporting,Compiled Flash data and prepared W&L summary,4.0,Draft
+TE-2025-046,CT-0036,Final TB Review and Sign-off,RIM,Rey Meran,2025-01-21,6.0,No,Review,Reviewed full TB and verified all entries,4.0,Draft
+TE-2025-047,CT-0036,Final TB Review and Sign-off,CKVC,Christine Victoria,2025-01-21,4.0,No,Approval,Final sign-off and archiving,4.0,Draft

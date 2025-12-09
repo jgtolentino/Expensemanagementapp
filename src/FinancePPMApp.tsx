@@ -4,15 +4,21 @@ import { Button } from './components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Badge } from './components/ui/badge';
 import { Progress } from './components/ui/progress';
-import { Input } from './components/ui/input';
-import { Label } from './components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import AppFeatures from './components/AppFeatures';
 import { 
   Briefcase, FolderKanban, Users, DollarSign, FileText, AlertTriangle, 
   BarChart3, Calendar, Plus, ChevronRight, ChevronDown, MoreVertical,
-  Clock, CheckCircle2, Circle, Diamond, Link2, User, Milestone
+  Clock, CheckCircle2, Diamond, TrendingUp, TrendingDown, Minus,
+  Shield, Activity, Target, GitBranch, List, Kanban, ListChecks
 } from 'lucide-react';
+import { logFrameStructure, getLogFrameById, getAllIndicators, LogFrameObjective } from './lib/data/logframe-data';
+import { sampleTasksEnhanced, allTasksEnhanced, TaskEnhanced, getAllTasks } from './lib/data/tasks-enhanced';
+import { teamMembers, getTeamMemberByCode } from './lib/data/team-data';
+import { portfolioDashboard } from './lib/data/ppm-sample-data';
+import { PortfolioDashboard } from './components/portfolio-dashboard';
+import KanbanBoardImproved from './components/KanbanBoardImproved';
+import TaskDetailView from './components/TaskDetailView';
 
 const COLORS = {
   primary: '#D97706',
@@ -20,268 +26,171 @@ const COLORS = {
   warning: '#F59E0B',
   danger: '#EF4444',
   info: '#0EA5E9',
+  purple: '#8B5CF6',
 };
 
-// Task types
-type TaskType = 'phase' | 'milestone' | 'task';
-type TaskStatus = 'not_started' | 'in_progress' | 'completed' | 'at_risk';
-
-interface Task {
+// Finance Clarity PPM Data Types
+interface Portfolio {
   id: string;
   name: string;
-  type: TaskType;
-  status: TaskStatus;
-  startDate: string;
-  endDate: string;
-  duration: number;
-  progress: number;
-  assignee?: string;
-  dependencies?: string[];
-  children?: Task[];
-  expanded?: boolean;
-  etc: number; // Estimate to Complete
-  actuals: number;
+  description: string;
+  strategicTheme: string;
+  owner: string;
+  totalBudget: number;
+  actualSpend: number;
+  projectCount: number;
+  healthScore: number | null;
+  ragStatus: 'Green' | 'Yellow' | 'Red';
+  status: 'Planning' | 'Active' | 'On Hold' | 'Completed';
 }
 
-interface Project {
+interface FinancialPlan {
+  id: string;
+  projectWbs: string;
+  phaseName: string;
+  budgetType: 'OPEX' | 'CAPEX';
+  category: string;
+  plannedAmount: number;
+  actualSpend: number;
+  forecast: number;
+  variance: number;
+  variancePercent: number;
+  period: string;
+  status: 'Planned' | 'Active' | 'Complete' | 'In Progress';
+}
+
+interface KPI {
   id: string;
   name: string;
-  status: string;
-  progress: number;
-  budget: number;
-  spent: number;
-  team: number;
-  phase: string;
-  startDate: string;
-  endDate: string;
-  manager: string;
-  tasks: Task[];
+  category: string;
+  target: string;
+  actual: string;
+  variance: string;
+  trend: 'Improving' | 'Stable' | 'Declining' | 'On Track' | 'At Risk';
+  status: 'Active' | 'At Risk' | 'Inactive';
+}
+
+interface Risk {
+  id: string;
+  taskPhase: string;
+  riskType: string;
+  description: string;
+  probability: 'Low' | 'Medium' | 'High';
+  impact: 'Low' | 'Medium' | 'High' | 'Critical';
+  exposure: 'Low' | 'Medium' | 'High' | 'Critical';
+  status: 'Open' | 'Mitigated' | 'Accepted' | 'Closed';
+  owner: string;
 }
 
 export default function FinancePPMApp() {
-  const [activeView, setActiveView] = useState<'dashboard' | 'projects' | 'resources' | 'financials'>('dashboard');
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [taskView, setTaskView] = useState<'timeline' | 'grid' | 'board' | 'features'>('timeline');
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set(['TASK-001', 'TASK-004']));
+  const [activeView, setActiveView] = useState<'dashboard' | 'portfolio' | 'portfolio-dashboard' | 'financials' | 'risks' | 'kpis' | 'logframe' | 'tasks' | 'team'>('dashboard');
+  const [selectedPortfolio, setSelectedPortfolio] = useState<string | null>(null);
+  const [selectedObjective, setSelectedObjective] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskEnhanced | null>(null);
+  const [expandedObjectives, setExpandedObjectives] = useState<Set<string>>(new Set(['GOAL-001', 'OUTCOME-001']));
 
-  // Mock project data with WBS
-  const projects: Project[] = [
+  // Finance Clarity PPM Sample Data
+  const portfolios: Portfolio[] = [
     {
-      id: 'PRJ-001',
-      name: 'Brand Refresh Campaign',
-      status: 'in_progress',
-      progress: 65,
-      budget: 450000,
-      spent: 292500,
-      team: 8,
-      phase: 'Execution',
-      startDate: '2024-01-15',
-      endDate: '2024-06-30',
-      manager: 'Sarah Chen',
-      tasks: [
-        {
-          id: 'TASK-001',
-          name: 'Planning Phase',
-          type: 'phase',
-          status: 'completed',
-          startDate: '2024-01-15',
-          endDate: '2024-02-28',
-          duration: 45,
-          progress: 100,
-          etc: 0,
-          actuals: 360,
-          expanded: true,
-          children: [
-            {
-              id: 'TASK-002',
-              name: 'Define Brand Strategy',
-              type: 'task',
-              status: 'completed',
-              startDate: '2024-01-15',
-              endDate: '2024-01-30',
-              duration: 15,
-              progress: 100,
-              assignee: 'Sarah Chen',
-              etc: 0,
-              actuals: 120,
-            },
-            {
-              id: 'TASK-003',
-              name: 'Market Research Complete',
-              type: 'milestone',
-              status: 'completed',
-              startDate: '2024-02-15',
-              endDate: '2024-02-15',
-              duration: 0,
-              progress: 100,
-              etc: 0,
-              actuals: 0,
-            },
-          ],
-        },
-        {
-          id: 'TASK-004',
-          name: 'Design Phase',
-          type: 'phase',
-          status: 'in_progress',
-          startDate: '2024-03-01',
-          endDate: '2024-04-30',
-          duration: 60,
-          progress: 70,
-          etc: 180,
-          actuals: 420,
-          expanded: true,
-          children: [
-            {
-              id: 'TASK-005',
-              name: 'Create Design Concepts',
-              type: 'task',
-              status: 'completed',
-              startDate: '2024-03-01',
-              endDate: '2024-03-20',
-              duration: 20,
-              progress: 100,
-              assignee: 'Marcus Wu',
-              dependencies: ['TASK-003'],
-              etc: 0,
-              actuals: 160,
-            },
-            {
-              id: 'TASK-006',
-              name: 'Design Review & Approval',
-              type: 'task',
-              status: 'in_progress',
-              startDate: '2024-03-21',
-              endDate: '2024-04-10',
-              duration: 20,
-              progress: 65,
-              assignee: 'Sarah Chen',
-              dependencies: ['TASK-005'],
-              etc: 56,
-              actuals: 104,
-            },
-            {
-              id: 'TASK-007',
-              name: 'Final Design Approval',
-              type: 'milestone',
-              status: 'not_started',
-              startDate: '2024-04-30',
-              endDate: '2024-04-30',
-              duration: 0,
-              progress: 0,
-              dependencies: ['TASK-006'],
-              etc: 0,
-              actuals: 0,
-            },
-          ],
-        },
-        {
-          id: 'TASK-008',
-          name: 'Implementation Phase',
-          type: 'phase',
-          status: 'not_started',
-          startDate: '2024-05-01',
-          endDate: '2024-06-30',
-          duration: 60,
-          progress: 0,
-          etc: 480,
-          actuals: 0,
-          children: [
-            {
-              id: 'TASK-009',
-              name: 'Develop Marketing Materials',
-              type: 'task',
-              status: 'not_started',
-              startDate: '2024-05-01',
-              endDate: '2024-05-31',
-              duration: 30,
-              progress: 0,
-              assignee: 'Priya Sharma',
-              dependencies: ['TASK-007'],
-              etc: 240,
-              actuals: 0,
-            },
-            {
-              id: 'TASK-010',
-              name: 'Launch Campaign',
-              type: 'task',
-              status: 'not_started',
-              startDate: '2024-06-01',
-              endDate: '2024-06-30',
-              duration: 30,
-              progress: 0,
-              assignee: 'Team',
-              dependencies: ['TASK-009'],
-              etc: 240,
-              actuals: 0,
-            },
-          ],
-        },
-      ],
+      id: 'PF-001',
+      name: 'Finance Operations Excellence 2025',
+      description: 'Monthly close process transformation and optimization',
+      strategicTheme: 'Process Excellence',
+      owner: 'CKVC',
+      totalBudget: 2500000,
+      actualSpend: 312350,
+      projectCount: 1,
+      healthScore: 85,
+      ragStatus: 'Green',
+      status: 'Active',
     },
     {
-      id: 'PRJ-002',
-      name: 'Digital Transformation',
-      status: 'in_progress',
-      progress: 42,
-      budget: 780000,
-      spent: 327600,
-      team: 12,
-      phase: 'Planning',
-      startDate: '2024-02-01',
-      endDate: '2024-12-31',
-      manager: 'David Park',
-      tasks: [],
+      id: 'PF-002',
+      name: 'Financial Systems Modernization',
+      description: 'ERP and financial systems upgrade program',
+      strategicTheme: 'Digital Transformation',
+      owner: 'CKVC',
+      totalBudget: 8500000,
+      actualSpend: 0,
+      projectCount: 3,
+      healthScore: null,
+      ragStatus: 'Green',
+      status: 'Planning',
     },
     {
-      id: 'PRJ-003',
-      name: 'Q4 Product Launch',
-      status: 'planning',
-      progress: 15,
-      budget: 320000,
-      spent: 48000,
-      team: 6,
-      phase: 'Initiation',
-      startDate: '2024-09-01',
-      endDate: '2024-12-15',
-      manager: 'Emma Thompson',
-      tasks: [],
-    },
-    {
-      id: 'PRJ-004',
-      name: 'Market Research Study',
-      status: 'at_risk',
-      progress: 78,
-      budget: 180000,
-      spent: 158400,
-      team: 4,
-      phase: 'Closing',
-      startDate: '2023-11-01',
-      endDate: '2024-02-29',
-      manager: 'Alex Rodriguez',
-      tasks: [],
+      id: 'PF-003',
+      name: 'Compliance & Governance',
+      description: 'Financial controls and regulatory compliance framework',
+      strategicTheme: 'Risk & Compliance',
+      owner: 'CKVC',
+      totalBudget: 1200000,
+      actualSpend: 145000,
+      projectCount: 2,
+      healthScore: 80,
+      ragStatus: 'Yellow',
+      status: 'Active',
     },
   ];
 
+  const financialPlans: FinancialPlan[] = [
+    { id: 'FP-2025-01-001', projectWbs: '1.0', phaseName: 'I. Initial & Compliance', budgetType: 'OPEX', category: 'Payroll & Personnel', plannedAmount: 35000, actualSpend: 33240, forecast: 34500, variance: -500, variancePercent: -1.43, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-01-002', projectWbs: '1.0', phaseName: 'I. Initial & Compliance', budgetType: 'OPEX', category: 'Tax & Provisions', plannedAmount: 15000, actualSpend: 14850, forecast: 14900, variance: -100, variancePercent: -0.67, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-01-003', projectWbs: '1.0', phaseName: 'I. Initial & Compliance', budgetType: 'OPEX', category: 'VAT & Compliance', plannedAmount: 12000, actualSpend: 11500, forecast: 11800, variance: -200, variancePercent: -1.67, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-01-004', projectWbs: '1.0', phaseName: 'I. Initial & Compliance', budgetType: 'OPEX', category: 'CA Liquidations', plannedAmount: 8000, actualSpend: 7650, forecast: 7800, variance: -200, variancePercent: -2.50, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-02-001', projectWbs: '2.0', phaseName: 'II. Accruals & Amortization', budgetType: 'OPEX', category: 'Accruals & Expenses', plannedAmount: 45000, actualSpend: 42300, forecast: 44000, variance: -1000, variancePercent: -2.22, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-02-002', projectWbs: '2.0', phaseName: 'II. Accruals & Amortization', budgetType: 'OPEX', category: 'Corporate Accruals', plannedAmount: 28000, actualSpend: 27100, forecast: 27500, variance: -500, variancePercent: -1.79, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-02-003', projectWbs: '2.0', phaseName: 'II. Accruals & Amortization', budgetType: 'OPEX', category: 'Client Billings', plannedAmount: 52000, actualSpend: 50800, forecast: 51500, variance: -500, variancePercent: -0.96, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-02-004', projectWbs: '2.0', phaseName: 'II. Accruals & Amortization', budgetType: 'CAPEX', category: 'Asset Capitalization', plannedAmount: 18000, actualSpend: 17200, forecast: 17800, variance: -200, variancePercent: -1.11, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-02-005', projectWbs: '2.0', phaseName: 'II. Accruals & Amortization', budgetType: 'OPEX', category: 'Depreciation', plannedAmount: 22000, actualSpend: 22000, forecast: 22000, variance: 0, variancePercent: 0.00, period: 'Jan 2025', status: 'Complete' },
+    { id: 'FP-2025-03-001', projectWbs: '3.0', phaseName: 'III. WIP', budgetType: 'OPEX', category: 'WIP Management', plannedAmount: 16000, actualSpend: 15200, forecast: 15800, variance: -200, variancePercent: -1.25, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-03-002', projectWbs: '3.0', phaseName: 'III. WIP', budgetType: 'OPEX', category: 'WIP Reconciliation', plannedAmount: 12000, actualSpend: 11400, forecast: 11700, variance: -300, variancePercent: -2.50, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-04-001', projectWbs: '4.0', phaseName: 'IV. Final Adjustments', budgetType: 'OPEX', category: 'Prior Period Review', plannedAmount: 8000, actualSpend: 7600, forecast: 7850, variance: -150, variancePercent: -1.88, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-04-002', projectWbs: '4.0', phaseName: 'IV. Final Adjustments', budgetType: 'OPEX', category: 'Reclassifications', plannedAmount: 14000, actualSpend: 13200, forecast: 13800, variance: -200, variancePercent: -1.43, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-04-003', projectWbs: '4.0', phaseName: 'IV. Final Adjustments', budgetType: 'OPEX', category: 'Regional Reporting', plannedAmount: 10000, actualSpend: 9500, forecast: 9800, variance: -200, variancePercent: -2.00, period: 'Jan 2025', status: 'Active' },
+    { id: 'FP-2025-04-005', projectWbs: '4.0', phaseName: 'IV. Final Adjustments', budgetType: 'OPEX', category: 'TB Sign-off', plannedAmount: 5000, actualSpend: 4800, forecast: 4950, variance: -50, variancePercent: -1.00, period: 'Jan 2025', status: 'In Progress' },
+  ];
+
+  const kpis: KPI[] = [
+    { id: 'KPI-001', name: 'On-Time Period Close Rate', category: 'Cycle Time', target: '100%', actual: '92%', variance: '-8%', trend: 'Improving', status: 'Active' },
+    { id: 'KPI-002', name: 'Budget Variance %', category: 'Financial', target: '<5%', actual: '1.8%', variance: '3.2%', trend: 'Stable', status: 'Active' },
+    { id: 'KPI-003', name: 'Task Completion Rate', category: 'Execution', target: '100%', actual: '83%', variance: '-17%', trend: 'On Track', status: 'Active' },
+    { id: 'KPI-004', name: 'High Risk Mitigation %', category: 'Risk Management', target: '80%', actual: '60%', variance: '-20%', trend: 'Declining', status: 'At Risk' },
+    { id: 'KPI-005', name: 'Time Entry Compliance %', category: 'Resource', target: '95%', actual: '88%', variance: '-7%', trend: 'Stable', status: 'Active' },
+  ];
+
+  const risks: Risk[] = [
+    { id: 'RSK-001', taskPhase: 'CT-0004', riskType: 'Compliance', description: 'VAT filing deadline may be missed due to data compilation delays', probability: 'High', impact: 'High', exposure: 'Critical', status: 'Open', owner: 'JAP' },
+    { id: 'RSK-007', taskPhase: 'CT-0024', riskType: 'Operational', description: 'WIP data inconsistencies between project system and GL', probability: 'High', impact: 'High', exposure: 'Critical', status: 'Open', owner: 'JRMO' },
+    { id: 'RSK-012', taskPhase: 'CT-0035', riskType: 'Operational', description: 'Incomplete flash report data causing regional reporting delays', probability: 'High', impact: 'High', exposure: 'Critical', status: 'Open', owner: 'BOM' },
+    { id: 'RSK-003', taskPhase: 'CT-0009', riskType: 'Financial', description: 'Client contract amendments not reflected in accrual calculations', probability: 'Medium', impact: 'High', exposure: 'High', status: 'Mitigated', owner: 'JPAL' },
+    { id: 'RSK-010', taskPhase: 'CT-0029', riskType: 'Operational', description: 'Incorrect job code transfers affecting project profitability', probability: 'Medium', impact: 'High', exposure: 'High', status: 'Open', owner: 'JAP' },
+  ];
+
+  // Calculate portfolio metrics
   const portfolioMetrics = {
-    totalProjects: 24,
-    activeProjects: 16,
-    totalBudget: 3450000,
-    totalSpent: 2186500,
+    totalProjects: portfolios.reduce((sum, p) => sum + p.projectCount, 0),
+    activeProjects: portfolios.filter(p => p.status === 'Active').length,
+    totalBudget: portfolios.reduce((sum, p) => sum + p.totalBudget, 0),
+    totalSpent: portfolios.reduce((sum, p) => sum + p.actualSpend, 0),
     utilization: 78,
-    atRisk: 3,
+    atRisk: risks.filter(r => r.exposure === 'Critical' && r.status === 'Open').length,
   };
 
-  const getStatusBadge = (status: string) => {
-    const config = {
-      in_progress: { label: 'In Progress', color: COLORS.info },
-      planning: { label: 'Planning', color: COLORS.warning },
-      at_risk: { label: 'At Risk', color: COLORS.danger },
-      completed: { label: 'Completed', color: COLORS.success },
-      not_started: { label: 'Not Started', color: '#6B7280' },
-    };
-    return config[status as keyof typeof config] || config.not_started;
-  };
+  // Calculate phase budgets
+  const phaseBudgets = financialPlans.reduce((acc, plan) => {
+    if (!acc[plan.projectWbs]) {
+      acc[plan.projectWbs] = { 
+        name: plan.phaseName, 
+        planned: 0, 
+        actual: 0, 
+        variance: 0 
+      };
+    }
+    acc[plan.projectWbs].planned += plan.plannedAmount;
+    acc[plan.projectWbs].actual += plan.actualSpend;
+    acc[plan.projectWbs].variance += plan.variance;
+    return acc;
+  }, {} as Record<string, { name: string; planned: number; actual: number; variance: number }>);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-PH', {
@@ -291,332 +200,37 @@ export default function FinancePPMApp() {
     }).format(value);
   };
 
-  const toggleTask = (taskId: string) => {
-    const newExpanded = new Set(expandedTasks);
-    if (newExpanded.has(taskId)) {
-      newExpanded.delete(taskId);
-    } else {
-      newExpanded.add(taskId);
-    }
-    setExpandedTasks(newExpanded);
-  };
-
-  const getTaskIcon = (type: TaskType) => {
-    switch (type) {
-      case 'phase':
-        return <FolderKanban className="h-4 w-4" />;
-      case 'milestone':
-        return <Diamond className="h-4 w-4" />;
-      case 'task':
-        return <CheckCircle2 className="h-4 w-4" />;
-    }
-  };
-
-  const renderTaskRow = (task: Task, level: number = 0, parentId?: string) => {
-    const hasChildren = task.children && task.children.length > 0;
-    const isExpanded = expandedTasks.has(task.id);
-    const statusConfig = getStatusBadge(task.status);
-
-    return (
-      <div key={task.id}>
-        <div
-          className="flex items-center gap-2 py-2 px-3 hover:bg-slate-50 border-b"
-          style={{ paddingLeft: `${level * 24 + 12}px` }}
-        >
-          {/* Expand/Collapse */}
-          <div className="w-4">
-            {hasChildren && (
-              <button onClick={() => toggleTask(task.id)}>
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
-                )}
-              </button>
-            )}
-          </div>
-
-          {/* Task Icon & Name */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div style={{ color: task.type === 'milestone' ? COLORS.warning : COLORS.primary }}>
-              {getTaskIcon(task.type)}
-            </div>
-            <span className={`truncate ${task.type === 'phase' ? 'font-semibold' : ''}`}>
-              {task.name}
-            </span>
-          </div>
-
-          {/* Status */}
-          <div className="w-28">
-            <Badge
-              variant="secondary"
-              style={{
-                backgroundColor: `${statusConfig.color}20`,
-                color: statusConfig.color,
-              }}
-            >
-              {statusConfig.label}
-            </Badge>
-          </div>
-
-          {/* Dates */}
-          <div className="w-40 text-sm text-slate-600 hidden md:block">
-            {task.startDate} - {task.endDate}
-          </div>
-
-          {/* Progress */}
-          <div className="w-32 hidden lg:block">
-            <div className="flex items-center gap-2">
-              <Progress value={task.progress} className="flex-1" />
-              <span className="text-sm text-slate-600 w-10">{task.progress}%</span>
-            </div>
-          </div>
-
-          {/* Assignee */}
-          <div className="w-32 text-sm text-slate-600 hidden xl:block">
-            {task.assignee || '-'}
-          </div>
-
-          {/* Actions */}
-          <button className="p-1 hover:bg-slate-100 rounded">
-            <MoreVertical className="h-4 w-4 text-slate-400" />
-          </button>
-        </div>
-
-        {/* Render children */}
-        {hasChildren && isExpanded && task.children?.map(child => renderTaskRow(child, level + 1, task.id))}
-      </div>
-    );
-  };
-
-  const renderTimelineView = (project: Project) => {
-    return (
-      <div className="space-y-4">
-        {/* Timeline Controls */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Task
-                </Button>
-                <Button variant="outline" size="sm">
-                  Autoschedule
-                </Button>
-                <Button variant="outline" size="sm">
-                  Compare Baseline
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Select defaultValue="weeks">
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="days">Days</SelectItem>
-                    <SelectItem value="weeks">Weeks</SelectItem>
-                    <SelectItem value="months">Months</SelectItem>
-                    <SelectItem value="quarters">Quarters</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm">
-                  View Options
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* WBS Task List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Work Breakdown Structure</CardTitle>
-            <CardDescription>
-              Phases, milestones, and tasks with dependencies
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="border-b bg-slate-50 flex items-center gap-2 py-2 px-3 text-sm font-medium text-slate-600">
-              <div className="w-4"></div>
-              <div className="flex-1">Task Name</div>
-              <div className="w-28">Status</div>
-              <div className="w-40 hidden md:block">Dates</div>
-              <div className="w-32 hidden lg:block">Progress</div>
-              <div className="w-32 hidden xl:block">Assignee</div>
-              <div className="w-8"></div>
-            </div>
-            {project.tasks.map(task => renderTaskRow(task))}
-          </CardContent>
-        </Card>
-
-        {/* Critical Path Info */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <div className="text-sm text-slate-600">Total Tasks</div>
-                <div className="text-2xl font-semibold">12</div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-600">On Critical Path</div>
-                <div className="text-2xl font-semibold" style={{ color: COLORS.danger }}>
-                  5
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-600">Dependencies</div>
-                <div className="text-2xl font-semibold">8</div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-600">Project Float</div>
-                <div className="text-2xl font-semibold">3 days</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
-  const renderGridView = (project: Project) => {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Task Grid</CardTitle>
-          <CardDescription>Excel-inspired grid for quick data entry</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr>
-                  <th className="text-left py-2 px-3">WBS</th>
-                  <th className="text-left py-2 px-3">Name</th>
-                  <th className="text-left py-2 px-3">Type</th>
-                  <th className="text-left py-2 px-3">Start</th>
-                  <th className="text-left py-2 px-3">End</th>
-                  <th className="text-left py-2 px-3">Duration</th>
-                  <th className="text-left py-2 px-3">ETC</th>
-                  <th className="text-left py-2 px-3">Actuals</th>
-                  <th className="text-left py-2 px-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {project.tasks.flatMap((task, idx) => {
-                  const rows = [
-                    <tr key={task.id} className="border-b hover:bg-slate-50">
-                      <td className="py-2 px-3 font-medium">{idx + 1}</td>
-                      <td className="py-2 px-3 font-semibold">{task.name}</td>
-                      <td className="py-2 px-3">{task.type}</td>
-                      <td className="py-2 px-3">{task.startDate}</td>
-                      <td className="py-2 px-3">{task.endDate}</td>
-                      <td className="py-2 px-3">{task.duration}d</td>
-                      <td className="py-2 px-3">{task.etc}h</td>
-                      <td className="py-2 px-3">{task.actuals}h</td>
-                      <td className="py-2 px-3">{task.status}</td>
-                    </tr>
-                  ];
-                  if (task.children) {
-                    task.children.forEach((child, childIdx) => {
-                      rows.push(
-                        <tr key={child.id} className="border-b hover:bg-slate-50">
-                          <td className="py-2 px-3 pl-8">{`${idx + 1}.${childIdx + 1}`}</td>
-                          <td className="py-2 px-3">{child.name}</td>
-                          <td className="py-2 px-3">{child.type}</td>
-                          <td className="py-2 px-3">{child.startDate}</td>
-                          <td className="py-2 px-3">{child.endDate}</td>
-                          <td className="py-2 px-3">{child.duration}d</td>
-                          <td className="py-2 px-3">{child.etc}h</td>
-                          <td className="py-2 px-3">{child.actuals}h</td>
-                          <td className="py-2 px-3">{child.status}</td>
-                        </tr>
-                      );
-                    });
-                  }
-                  return rows;
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderBoardView = (project: Project) => {
-    const allTasks = project.tasks.flatMap(task => {
-      if (task.children) {
-        return [task, ...task.children];
-      }
-      return [task];
-    });
-
-    const columns = {
-      not_started: allTasks.filter(t => t.status === 'not_started'),
-      in_progress: allTasks.filter(t => t.status === 'in_progress'),
-      completed: allTasks.filter(t => t.status === 'completed'),
-      at_risk: allTasks.filter(t => t.status === 'at_risk'),
+  const getRAGBadge = (status: 'Green' | 'Yellow' | 'Red') => {
+    const config = {
+      Green: { label: 'On Track', color: COLORS.success },
+      Yellow: { label: 'At Risk', color: COLORS.warning },
+      Red: { label: 'Critical', color: COLORS.danger },
     };
-
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">Configure Card</Button>
-              <Button variant="outline" size="sm">View Options</Button>
-              <Select defaultValue="status">
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Color by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="assignee">Assignee</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {Object.entries(columns).map(([status, tasks]) => (
-            <Card key={status} className="bg-slate-50">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">
-                    {getStatusBadge(status).label}
-                  </CardTitle>
-                  <Badge variant="secondary">{tasks.length}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {tasks.map(task => (
-                  <Card key={task.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="pt-4 pb-3">
-                      <div className="flex items-start gap-2 mb-2">
-                        {getTaskIcon(task.type)}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{task.name}</div>
-                          <div className="text-xs text-slate-500 mt-1">
-                            {task.duration}d • {task.assignee || 'Unassigned'}
-                          </div>
-                        </div>
-                      </div>
-                      <Progress value={task.progress} className="h-1" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+    return config[status];
   };
 
-  const currentProject = projects.find(p => p.id === selectedProject);
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'Improving':
+      case 'On Track':
+        return <TrendingUp className="h-4 w-4" style={{ color: COLORS.success }} />;
+      case 'Declining':
+      case 'At Risk':
+        return <TrendingDown className="h-4 w-4" style={{ color: COLORS.danger }} />;
+      default:
+        return <Minus className="h-4 w-4" style={{ color: COLORS.info }} />;
+    }
+  };
+
+  const getRiskBadge = (exposure: string) => {
+    const config = {
+      Critical: { color: COLORS.danger, bg: '#FEE2E2' },
+      High: { color: COLORS.warning, bg: '#FEF3C7' },
+      Medium: { color: COLORS.info, bg: '#DBEAFE' },
+      Low: { color: '#6B7280', bg: '#F3F4F6' },
+    };
+    return config[exposure as keyof typeof config] || config.Low;
+  };
 
   // Dashboard View
   if (activeView === 'dashboard') {
@@ -678,59 +292,429 @@ export default function FinancePPMApp() {
             </Card>
           </div>
 
-          {/* Project List */}
-          <Card>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+            <Button
+              variant="outline"
+              className="h-20 justify-start"
+              onClick={() => setActiveView('portfolio')}
+            >
+              <div className="flex items-start gap-3">
+                <Briefcase className="h-5 w-5 mt-1" style={{ color: COLORS.primary }} />
+                <div className="text-left">
+                  <div className="font-semibold">Portfolios</div>
+                  <div className="text-xs text-slate-500">{portfolios.length} active</div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start relative group"
+              onClick={() => setActiveView('portfolio-dashboard')}
+            >
+              <div className="flex items-start gap-3">
+                <BarChart3 className="h-5 w-5 mt-1" style={{ color: COLORS.info }} />
+                <div className="text-left">
+                  <div className="font-semibold">Portfolio Dashboard</div>
+                  <div className="text-xs text-slate-500">Strategic View ⭐</div>
+                </div>
+              </div>
+              <Badge className="absolute top-1 right-1 text-xs bg-blue-500">NEW</Badge>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start"
+              onClick={() => setActiveView('financials')}
+            >
+              <div className="flex items-start gap-3">
+                <DollarSign className="h-5 w-5 mt-1" style={{ color: COLORS.success }} />
+                <div className="text-left">
+                  <div className="font-semibold">Financial Plans</div>
+                  <div className="text-xs text-slate-500">{financialPlans.length} budget lines</div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start"
+              onClick={() => setActiveView('risks')}
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 mt-1" style={{ color: COLORS.danger }} />
+                <div className="text-left">
+                  <div className="font-semibold">Risk Register</div>
+                  <div className="text-xs text-slate-500">{risks.filter(r => r.status === 'Open').length} open</div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start"
+              onClick={() => setActiveView('kpis')}
+            >
+              <div className="flex items-start gap-3">
+                <Target className="h-5 w-5 mt-1" style={{ color: COLORS.info }} />
+                <div className="text-left">
+                  <div className="font-semibold">KPIs</div>
+                  <div className="text-xs text-slate-500">{kpis.filter(k => k.status === 'Active').length} active metrics</div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start"
+              onClick={() => setActiveView('logframe')}
+            >
+              <div className="flex items-start gap-3">
+                <GitBranch className="h-5 w-5 mt-1" style={{ color: COLORS.purple }} />
+                <div className="text-left">
+                  <div className="font-semibold">LogFrame</div>
+                  <div className="text-xs text-slate-500">{getAllIndicators().length} indicators</div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start"
+              onClick={() => setActiveView('tasks')}
+            >
+              <div className="flex items-start gap-3">
+                <Kanban className="h-5 w-5 mt-1" style={{ color: COLORS.info }} />
+                <div className="text-left">
+                  <div className="font-semibold">Tasks & Kanban</div>
+                  <div className="text-xs text-slate-500">{getAllTasks(allTasksEnhanced).length} tasks</div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start"
+              onClick={() => setActiveView('team')}
+            >
+              <div className="flex items-start gap-3">
+                <Users className="h-5 w-5 mt-1" style={{ color: COLORS.success }} />
+                <div className="text-left">
+                  <div className="font-semibold">Team Directory</div>
+                  <div className="text-xs text-slate-500">{teamMembers.length} members</div>
+                </div>
+              </div>
+            </Button>
+          </div>
+
+          {/* Portfolios List */}
+          <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Active Projects</CardTitle>
-                  <CardDescription>Portfolio overview</CardDescription>
+                  <CardTitle>Active Portfolios</CardTitle>
+                  <CardDescription>Strategic portfolio overview</CardDescription>
                 </div>
                 <Button style={{ backgroundColor: COLORS.primary }}>
                   <Plus className="h-4 w-4 mr-2" />
-                  New Project
+                  New Portfolio
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {projects.map(project => (
-                  <div
-                    key={project.id}
-                    className="p-4 border rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedProject(project.id);
-                      setActiveView('projects');
-                    }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="font-medium">{project.name}</div>
-                        <div className="text-sm text-slate-500 mt-1">
-                          {project.manager} • {project.team} members • {project.phase}
+                {portfolios.map(portfolio => {
+                  const spentPercent = (portfolio.actualSpend / portfolio.totalBudget) * 100;
+                  const ragBadge = getRAGBadge(portfolio.ragStatus);
+                  
+                  return (
+                    <div
+                      key={portfolio.id}
+                      className="p-4 border rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedPortfolio(portfolio.id);
+                        setActiveView('portfolio');
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="font-medium text-lg">{portfolio.name}</div>
+                          <div className="text-sm text-slate-500 mt-1">
+                            {portfolio.description}
+                          </div>
+                          <div className="flex items-center gap-3 mt-2">
+                            <Badge variant="outline" className="text-xs">
+                              {portfolio.strategicTheme}
+                            </Badge>
+                            <span className="text-xs text-slate-500">
+                              {portfolio.projectCount} projects • {portfolio.owner}
+                            </span>
+                            {portfolio.healthScore && (
+                              <div className="flex items-center gap-1">
+                                <Activity className="h-3 w-3 text-slate-400" />
+                                <span className="text-xs text-slate-600">Health: {portfolio.healthScore}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          style={{
+                            backgroundColor: ragBadge.bg || `${ragBadge.color}20`,
+                            color: ragBadge.color,
+                          }}
+                        >
+                          {ragBadge.label}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <Progress value={spentPercent} />
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          {formatCurrency(portfolio.actualSpend)} / {formatCurrency(portfolio.totalBudget)}
+                        </div>
+                        <div className="text-sm font-medium" style={{ 
+                          color: spentPercent < 80 ? COLORS.success : spentPercent < 95 ? COLORS.warning : COLORS.danger 
+                        }}>
+                          {spentPercent.toFixed(1)}%
                         </div>
                       </div>
-                      <Badge
-                        variant="secondary"
-                        style={{
-                          backgroundColor: `${getStatusBadge(project.status).color}20`,
-                          color: getStatusBadge(project.status).color,
-                        }}
-                      >
-                        {getStatusBadge(project.status).label}
-                      </Badge>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-600">
-                      <div className="flex-1">
-                        <Progress value={project.progress} />
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent KPIs */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Key Performance Indicators</CardTitle>
+                <CardDescription>Current period performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {kpis.slice(0, 4).map(kpi => (
+                    <div key={kpi.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        {getTrendIcon(kpi.trend)}
+                        <div>
+                          <div className="font-medium text-sm">{kpi.name}</div>
+                          <div className="text-xs text-slate-500">{kpi.category}</div>
+                        </div>
                       </div>
-                      <div className="w-12 text-right">{project.progress}%</div>
                       <div className="text-right">
-                        {formatCurrency(project.spent)} / {formatCurrency(project.budget)}
+                        <div className="font-semibold">{kpi.actual}</div>
+                        <div className="text-xs text-slate-500">Target: {kpi.target}</div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Critical Risks</CardTitle>
+                <CardDescription>High exposure risks requiring attention</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {risks.filter(r => r.exposure === 'Critical').slice(0, 3).map(risk => {
+                    const badge = getRiskBadge(risk.exposure);
+                    return (
+                      <div key={risk.id} className="p-3 border rounded-lg">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4" style={{ color: badge.color }} />
+                            <span className="font-medium text-sm">{risk.id}</span>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            style={{ backgroundColor: badge.bg, color: badge.color }}
+                          >
+                            {risk.exposure}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-slate-600 mb-2">{risk.description}</div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span>{risk.riskType}</span>
+                          <span>•</span>
+                          <span>P: {risk.probability}</span>
+                          <span>•</span>
+                          <span>I: {risk.impact}</span>
+                          <span>•</span>
+                          <span>Owner: {risk.owner}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Financials View
+  if (activeView === 'financials') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
+        <main className="container mx-auto p-6 max-w-7xl">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+              <button onClick={() => setActiveView('dashboard')} className="hover:text-slate-900">
+                Dashboard
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <span>Financial Plans</span>
+            </div>
+            <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
+              Financial Plans & Budgets
+            </h1>
+            <p className="text-muted-foreground">
+              Budget tracking by phase and category
+            </p>
+          </div>
+
+          {/* Phase Budget Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {Object.entries(phaseBudgets).map(([wbs, data]) => {
+              const variancePercent = (data.variance / data.planned) * 100;
+              return (
+                <Card key={wbs}>
+                  <CardHeader>
+                    <CardDescription className="text-xs">{wbs}</CardDescription>
+                    <CardTitle className="text-lg">{data.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Planned</span>
+                        <span className="font-medium">{formatCurrency(data.planned)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Actual</span>
+                        <span className="font-medium">{formatCurrency(data.actual)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Variance</span>
+                        <span 
+                          className="font-semibold"
+                          style={{ color: data.variance < 0 ? COLORS.success : COLORS.danger }}
+                        >
+                          {formatCurrency(data.variance)} ({variancePercent.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <Progress value={(data.actual / data.planned) * 100} className="mt-2" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Detailed Budget Lines */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Budget Details - Jan 2025</CardTitle>
+                  <CardDescription>Category-level budget breakdown</CardDescription>
+                </div>
+                <Select defaultValue="jan">
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="jan">Jan 2025</SelectItem>
+                    <SelectItem value="feb">Feb 2025</SelectItem>
+                    <SelectItem value="mar">Mar 2025</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b">
+                    <tr>
+                      <th className="text-left py-3 px-4 font-medium">Phase</th>
+                      <th className="text-left py-3 px-4 font-medium">Category</th>
+                      <th className="text-left py-3 px-4 font-medium">Type</th>
+                      <th className="text-right py-3 px-4 font-medium">Planned</th>
+                      <th className="text-right py-3 px-4 font-medium">Actual</th>
+                      <th className="text-right py-3 px-4 font-medium">Forecast</th>
+                      <th className="text-right py-3 px-4 font-medium">Variance</th>
+                      <th className="text-center py-3 px-4 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {financialPlans.map(plan => (
+                      <tr key={plan.id} className="border-b hover:bg-slate-50">
+                        <td className="py-3 px-4 text-slate-600">{plan.projectWbs}</td>
+                        <td className="py-3 px-4 font-medium">{plan.category}</td>
+                        <td className="py-3 px-4">
+                          <Badge variant={plan.budgetType === 'CAPEX' ? 'default' : 'secondary'} className="text-xs">
+                            {plan.budgetType}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-right">{formatCurrency(plan.plannedAmount)}</td>
+                        <td className="py-3 px-4 text-right font-medium">{formatCurrency(plan.actualSpend)}</td>
+                        <td className="py-3 px-4 text-right">{formatCurrency(plan.forecast)}</td>
+                        <td 
+                          className="py-3 px-4 text-right font-semibold"
+                          style={{ color: plan.variance < 0 ? COLORS.success : COLORS.danger }}
+                        >
+                          {formatCurrency(plan.variance)}
+                          <div className="text-xs">{plan.variancePercent.toFixed(1)}%</div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs"
+                            style={{
+                              backgroundColor: plan.status === 'Complete' ? `${COLORS.success}20` :
+                                plan.status === 'In Progress' ? `${COLORS.info}20` :
+                                `${COLORS.warning}20`,
+                              color: plan.status === 'Complete' ? COLORS.success :
+                                plan.status === 'In Progress' ? COLORS.info :
+                                COLORS.warning,
+                            }}
+                          >
+                            {plan.status}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-slate-50 border-t">
+                    <tr className="font-semibold">
+                      <td colSpan={3} className="py-3 px-4">Total</td>
+                      <td className="py-3 px-4 text-right">
+                        {formatCurrency(financialPlans.reduce((sum, p) => sum + p.plannedAmount, 0))}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {formatCurrency(financialPlans.reduce((sum, p) => sum + p.actualSpend, 0))}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {formatCurrency(financialPlans.reduce((sum, p) => sum + p.forecast, 0))}
+                      </td>
+                      <td 
+                        className="py-3 px-4 text-right"
+                        style={{ color: COLORS.success }}
+                      >
+                        {formatCurrency(financialPlans.reduce((sum, p) => sum + p.variance, 0))}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -739,66 +723,995 @@ export default function FinancePPMApp() {
     );
   }
 
-  // Project Detail View
-  if (activeView === 'projects' && currentProject) {
+  // Risks View
+  if (activeView === 'risks') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
         <main className="container mx-auto p-6 max-w-7xl">
-          {/* Project Header */}
           <div className="mb-6">
             <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
-              <button
-                onClick={() => {
-                  setSelectedProject(null);
-                  setActiveView('dashboard');
-                }}
-                className="hover:text-slate-900"
-              >
-                Projects
+              <button onClick={() => setActiveView('dashboard')} className="hover:text-slate-900">
+                Dashboard
               </button>
               <ChevronRight className="h-4 w-4" />
-              <span>{currentProject.name}</span>
+              <span>Risk Register</span>
+            </div>
+            <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
+              Risk Register
+            </h1>
+            <p className="text-muted-foreground">
+              Project risk identification and mitigation tracking
+            </p>
+          </div>
+
+          {/* Risk Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardDescription>Total Risks</CardDescription>
+                <CardTitle className="text-3xl">{risks.length}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  {risks.filter(r => r.status === 'Open').length} open
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardDescription>Critical Exposure</CardDescription>
+                <CardTitle className="text-3xl" style={{ color: COLORS.danger }}>
+                  {risks.filter(r => r.exposure === 'Critical').length}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Requires immediate attention
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardDescription>High Exposure</CardDescription>
+                <CardTitle className="text-3xl" style={{ color: COLORS.warning }}>
+                  {risks.filter(r => r.exposure === 'High').length}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Active monitoring required
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardDescription>Mitigated</CardDescription>
+                <CardTitle className="text-3xl" style={{ color: COLORS.success }}>
+                  {risks.filter(r => r.status === 'Mitigated').length}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Successfully mitigated
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Risk List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Risks</CardTitle>
+              <CardDescription>Sorted by exposure level</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {risks.map(risk => {
+                  const badge = getRiskBadge(risk.exposure);
+                  return (
+                    <div key={risk.id} className="p-4 border rounded-lg hover:bg-slate-50">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <AlertTriangle className="h-5 w-5" style={{ color: badge.color }} />
+                          <div>
+                            <div className="font-semibold">{risk.id}</div>
+                            <div className="text-sm text-slate-500 mt-1">{risk.riskType} • {risk.taskPhase}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            style={{ backgroundColor: badge.bg, color: badge.color }}
+                          >
+                            {risk.exposure}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {risk.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-700 mb-3">{risk.description}</div>
+                      <div className="flex items-center gap-6 text-xs text-slate-600">
+                        <div>
+                          <span className="text-slate-500">Probability: </span>
+                          <span className="font-medium">{risk.probability}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Impact: </span>
+                          <span className="font-medium">{risk.impact}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Owner: </span>
+                          <span className="font-medium">{risk.owner}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // KPIs View
+  if (activeView === 'kpis') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
+        <main className="container mx-auto p-6 max-w-7xl">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+              <button onClick={() => setActiveView('dashboard')} className="hover:text-slate-900">
+                Dashboard
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <span>KPIs</span>
+            </div>
+            <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
+              Key Performance Indicators
+            </h1>
+            <p className="text-muted-foreground">
+              Performance metrics and trends
+            </p>
+          </div>
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {kpis.map(kpi => (
+              <Card key={kpi.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      {getTrendIcon(kpi.trend)}
+                      <CardDescription className="text-xs">{kpi.category}</CardDescription>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs"
+                      style={{
+                        backgroundColor: kpi.status === 'Active' ? `${COLORS.success}20` : `${COLORS.danger}20`,
+                        color: kpi.status === 'Active' ? COLORS.success : COLORS.danger,
+                      }}
+                    >
+                      {kpi.status}
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-lg mt-2">{kpi.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-xs text-slate-500">Current</div>
+                        <div className="text-2xl font-semibold">{kpi.actual}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-slate-500">Target</div>
+                        <div className="text-lg font-medium text-slate-600">{kpi.target}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600">Variance</span>
+                      <span 
+                        className="font-semibold"
+                        style={{ 
+                          color: kpi.variance.startsWith('-') ? COLORS.danger : COLORS.success 
+                        }}
+                      >
+                        {kpi.variance}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span>Trend:</span>
+                      <span className="font-medium">{kpi.trend}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* KPI Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All KPIs</CardTitle>
+              <CardDescription>Complete metrics overview</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b">
+                  <tr>
+                    <th className="text-left py-3 px-4 font-medium">KPI Name</th>
+                    <th className="text-left py-3 px-4 font-medium">Category</th>
+                    <th className="text-right py-3 px-4 font-medium">Target</th>
+                    <th className="text-right py-3 px-4 font-medium">Actual</th>
+                    <th className="text-right py-3 px-4 font-medium">Variance</th>
+                    <th className="text-center py-3 px-4 font-medium">Trend</th>
+                    <th className="text-center py-3 px-4 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {kpis.map(kpi => (
+                    <tr key={kpi.id} className="border-b hover:bg-slate-50">
+                      <td className="py-3 px-4 font-medium">{kpi.name}</td>
+                      <td className="py-3 px-4 text-slate-600">{kpi.category}</td>
+                      <td className="py-3 px-4 text-right">{kpi.target}</td>
+                      <td className="py-3 px-4 text-right font-semibold">{kpi.actual}</td>
+                      <td 
+                        className="py-3 px-4 text-right font-semibold"
+                        style={{ 
+                          color: kpi.variance.startsWith('-') ? COLORS.danger : COLORS.success 
+                        }}
+                      >
+                        {kpi.variance}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {getTrendIcon(kpi.trend)}
+                          <span className="text-xs">{kpi.trend}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs"
+                          style={{
+                            backgroundColor: kpi.status === 'Active' ? `${COLORS.success}20` : `${COLORS.danger}20`,
+                            color: kpi.status === 'Active' ? COLORS.success : COLORS.danger,
+                          }}
+                        >
+                          {kpi.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // LogFrame View
+  if (activeView === 'logframe') {
+    const toggleObjective = (id: string) => {
+      const newExpanded = new Set(expandedObjectives);
+      if (newExpanded.has(id)) {
+        newExpanded.delete(id);
+      } else {
+        newExpanded.add(id);
+      }
+      setExpandedObjectives(newExpanded);
+    };
+
+    const renderObjectiveTree = (objective: LogFrameObjective, level: number = 0) => {
+      const hasChildren = objective.children && objective.children.length > 0;
+      const isExpanded = expandedObjectives.has(objective.id);
+      const levelColors = {
+        'Goal': { bg: '#1F4E79', text: '#FFFFFF' },
+        'Outcome': { bg: '#2E75B6', text: '#FFFFFF' },
+        'Immediate Objective': { bg: '#70AD47', text: '#FFFFFF' },
+        'Output': { bg: '#FFC000', text: '#000000' },
+        'Activity': { bg: '#F3F4F6', text: '#000000' },
+      };
+      const colors = levelColors[objective.level] || levelColors.Activity;
+
+      return (
+        <div key={objective.id} className="mb-2">
+          <div
+            className="border rounded-lg overflow-hidden"
+            style={{ marginLeft: `${level * 24}px` }}
+          >
+            <div
+              className="p-4 cursor-pointer"
+              style={{ backgroundColor: colors.bg, color: colors.text }}
+              onClick={() => hasChildren && toggleObjective(objective.id)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3 flex-1">
+                  {hasChildren && (
+                    <div className="mt-1">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: colors.text, borderColor: colors.text }}>
+                        {objective.level}
+                      </Badge>
+                      {objective.code && (
+                        <Badge variant="outline" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: colors.text, borderColor: colors.text }}>
+                          {objective.code}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="font-semibold text-lg mb-1">{objective.title}</div>
+                    <div className="text-sm opacity-90 whitespace-pre-line">{objective.description}</div>
+                    
+                    {objective.indicators.length > 0 && (
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {objective.indicators.map(indicator => (
+                          <div key={indicator.id} className="text-sm p-2 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
+                            <div className="font-medium">{indicator.name}</div>
+                            <div className="flex items-center justify-between mt-1">
+                              <span>Target: {indicator.target}</span>
+                              {indicator.actual && (
+                                <span className="font-semibold">
+                                  Actual: {indicator.actual}
+                                  {indicator.linkedKPI && (
+                                    <Badge variant="outline" className="ml-2 text-xs" style={{ borderColor: colors.text }}>
+                                      {indicator.linkedKPI}
+                                    </Badge>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="ml-4 flex flex-col items-end gap-2">
+                  {objective.progress !== undefined && (
+                    <div className="w-24">
+                      <div className="text-xs mb-1">Progress</div>
+                      <Progress value={objective.progress} className="h-2" />
+                      <div className="text-xs mt-1 text-right">{objective.progress}%</div>
+                    </div>
+                  )}
+                  {objective.status && (
+                    <Badge
+                      variant="secondary"
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.3)',
+                        color: colors.text,
+                      }}
+                    >
+                      {objective.status}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              {objective.meansOfVerification.length > 0 && (
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+                  <div className="text-xs font-medium mb-1">Means of Verification:</div>
+                  <div className="text-xs opacity-80">
+                    {objective.meansOfVerification.join(' • ')}
+                  </div>
+                </div>
+              )}
+              
+              {objective.assumptions.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-xs font-medium mb-1">Assumptions:</div>
+                  <div className="text-xs opacity-80">
+                    {objective.assumptions.join(' • ')}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {hasChildren && isExpanded && (
+            <div className="mt-2">
+              {objective.children!.map(child => renderObjectiveTree(child, level + 1))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
+        <main className="container mx-auto p-6 max-w-7xl">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+              <button onClick={() => setActiveView('dashboard')} className="hover:text-slate-900">
+                Dashboard
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <span>LogFrame</span>
+            </div>
+            <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
+              Logical Framework (LogFrame)
+            </h1>
+            <p className="text-muted-foreground">
+              Results-based management framework for Finance Operations Excellence
+            </p>
+          </div>
+
+          {/* LogFrame Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardDescription>Total Indicators</CardDescription>
+                <CardTitle className="text-3xl">{getAllIndicators().length}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Across all levels
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Goal Progress</CardDescription>
+                <CardTitle className="text-3xl">92%</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm" style={{ color: COLORS.success }}>
+                  On Track
+                </div>
+                <Progress value={92} className="mt-2" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Immediate Objectives</CardDescription>
+                <CardTitle className="text-3xl">2</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  IM1: Month-End • IM2: Tax Filing
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Linked KPIs</CardDescription>
+                <CardTitle className="text-3xl">
+                  {getAllIndicators().filter(ind => ind.linkedKPI).length}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Connected to KPI dashboard
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Legend */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex flex-wrap gap-4 items-center">
+                <div className="text-sm font-medium text-slate-600">Legend:</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#1F4E79' }}></div>
+                  <span className="text-sm">Goal</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#2E75B6' }}></div>
+                  <span className="text-sm">Outcome</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#70AD47' }}></div>
+                  <span className="text-sm">Immediate Objective</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#FFC000' }}></div>
+                  <span className="text-sm">Output</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#F3F4F6' }}></div>
+                  <span className="text-sm">Activity</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* LogFrame Tree */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Results Framework</CardTitle>
+                  <CardDescription>Hierarchical view of objectives, indicators, and assumptions</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allIds = new Set<string>();
+                      function collectIds(obj: LogFrameObjective) {
+                        allIds.add(obj.id);
+                        if (obj.children) {
+                          obj.children.forEach(child => collectIds(child));
+                        }
+                      }
+                      logFrameStructure.forEach(obj => collectIds(obj));
+                      setExpandedObjectives(allIds);
+                    }}
+                  >
+                    Expand All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExpandedObjectives(new Set(['GOAL-001']))}
+                  >
+                    Collapse All
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {logFrameStructure.map(objective => renderObjectiveTree(objective))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Linked Data */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Linked KPIs</CardTitle>
+                <CardDescription>KPIs connected to LogFrame indicators</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {kpis.slice(0, 5).map(kpi => (
+                    <div key={kpi.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4" style={{ color: COLORS.info }} />
+                        <span className="text-sm font-medium">{kpi.id}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">{kpi.actual}</div>
+                        <div className="text-xs text-slate-500">{kpi.name}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Task Linkage</CardTitle>
+                <CardDescription>Tasks contributing to objectives</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-sm font-medium mb-2">IM1: Month-End Closing</div>
+                    <div className="flex flex-wrap gap-1">
+                      {['CT-0001', 'CT-0002', 'CT-0007', 'CT-0024', 'CT-0036'].map(taskId => (
+                        <Badge key={taskId} variant="outline" className="text-xs">
+                          {taskId}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium mb-2">IM2: Tax Filing</div>
+                    <div className="flex flex-wrap gap-1">
+                      {['CT-0003', 'CT-0004'].map(taskId => (
+                        <Badge key={taskId} variant="outline" className="text-xs">
+                          {taskId}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Tasks & Kanban View
+  if (activeView === 'tasks') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
+        <main className="container mx-auto p-6 max-w-7xl">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+              <button onClick={() => setActiveView('dashboard')} className="hover:text-slate-900">
+                Dashboard
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <span>Tasks & Kanban</span>
+            </div>
+            <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
+              Tasks & Kanban Board
+            </h1>
+            <p className="text-muted-foreground">
+              Full hierarchy with checklists, comments, and @mentions
+            </p>
+          </div>
+
+          {/* Kanban Board */}
+          <KanbanBoardImproved
+            tasks={allTasksEnhanced}
+            onTaskClick={(task) => setSelectedTask(task)}
+            onStatusChange={(taskId, newStatus) => {
+              console.log(`Task ${taskId} moved to ${newStatus}`);
+              // Update task status in state - in real app, this would update the backend
+            }}
+          />
+
+          {/* Task Detail Modal */}
+          {selectedTask && (
+            <TaskDetailView
+              task={selectedTask}
+              onClose={() => setSelectedTask(null)}
+              onUpdate={(updatedTask) => {
+                // Update task in state
+                console.log('Task updated:', updatedTask);
+                setSelectedTask(updatedTask);
+              }}
+            />
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  // Team Directory View
+  if (activeView === 'team') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
+        <main className="container mx-auto p-6 max-w-7xl">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+              <button onClick={() => setActiveView('dashboard')} className="hover:text-slate-900">
+                Dashboard
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <span>Team Directory</span>
+            </div>
+            <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
+              Team Directory
+            </h1>
+            <p className="text-muted-foreground">
+              Finance Clarity Project Portfolio Management Team
+            </p>
+          </div>
+
+          {/* Team Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {teamMembers.map((member) => (
+              <Card key={member.code}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-semibold"
+                      style={{ backgroundColor: member.code === 'CKVC' ? COLORS.primary : member.code === 'RIM' ? COLORS.info : member.code === 'JAP' ? COLORS.success : COLORS.purple }}
+                    >
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg mb-1">{member.name}</div>
+                      <div className="text-sm text-slate-600 mb-1">{member.role}</div>
+                      <div className="text-xs text-slate-500 mb-2">{member.email}</div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          @{member.code}
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          style={{
+                            backgroundColor: member.active ? `${COLORS.success}20` : '#F3F4F6',
+                            color: member.active ? COLORS.success : '#6B7280',
+                          }}
+                        >
+                          {member.active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Team Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader>
+                <CardDescription>Total Members</CardDescription>
+                <CardTitle className="text-3xl">{teamMembers.length}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  {teamMembers.filter(m => m.active).length} active
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Departments</CardDescription>
+                <CardTitle className="text-3xl">1</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Finance
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Email Notifications</CardDescription>
+                <CardTitle className="text-3xl">
+                  {teamMembers.filter(m => m.notificationPreferences?.emailAlerts).length}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Members with alerts enabled
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>@Mention Ready</CardDescription>
+                <CardTitle className="text-3xl">
+                  {teamMembers.filter(m => m.notificationPreferences?.mentions).length}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Can be mentioned in comments
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Portfolio Dashboard View (New - Strategic Overview)
+  if (activeView === 'portfolio-dashboard') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto p-4 max-w-[1600px]">
+          {/* Breadcrumb Navigation */}
+          <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
+            <button 
+              onClick={() => setActiveView('dashboard')} 
+              className="hover:text-gray-900 transition-colors"
+            >
+              Dashboard
+            </button>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-gray-900 font-medium">Portfolio Dashboard</span>
+          </div>
+
+          {/* Portfolio Dashboard Component */}
+          <PortfolioDashboard data={portfolioDashboard} />
+        </div>
+      </div>
+    );
+  }
+
+  // Portfolio Detail View
+  if (activeView === 'portfolio' && selectedPortfolio) {
+    const portfolio = portfolios.find(p => p.id === selectedPortfolio);
+    if (!portfolio) return null;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
+        <main className="container mx-auto p-6 max-w-7xl">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+              <button onClick={() => setActiveView('dashboard')} className="hover:text-slate-900">
+                Dashboard
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <button onClick={() => setActiveView('portfolio')} className="hover:text-slate-900">
+                Portfolios
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <span>{portfolio.name}</span>
             </div>
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
-                  {currentProject.name}
+                  {portfolio.name}
                 </h1>
-                <p className="text-muted-foreground">
-                  {currentProject.manager} • {currentProject.startDate} - {currentProject.endDate}
-                </p>
+                <p className="text-muted-foreground">{portfolio.description}</p>
               </div>
               <Badge
                 variant="secondary"
                 style={{
-                  backgroundColor: `${getStatusBadge(currentProject.status).color}20`,
-                  color: getStatusBadge(currentProject.status).color,
+                  backgroundColor: `${getRAGBadge(portfolio.ragStatus).color}20`,
+                  color: getRAGBadge(portfolio.ragStatus).color,
                 }}
               >
-                {getStatusBadge(currentProject.status).label}
+                {getRAGBadge(portfolio.ragStatus).label}
               </Badge>
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs value={taskView} onValueChange={(v) => setTaskView(v as any)}>
+          {/* Portfolio Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardDescription>Total Budget</CardDescription>
+                <CardTitle className="text-2xl">{formatCurrency(portfolio.totalBudget)}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  {formatCurrency(portfolio.actualSpend)} spent
+                </div>
+                <Progress
+                  value={(portfolio.actualSpend / portfolio.totalBudget) * 100}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Projects</CardDescription>
+                <CardTitle className="text-2xl">{portfolio.projectCount}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  {portfolio.status}
+                </div>
+              </CardContent>
+            </Card>
+
+            {portfolio.healthScore && (
+              <Card>
+                <CardHeader>
+                  <CardDescription>Health Score</CardDescription>
+                  <CardTitle className="text-2xl">{portfolio.healthScore}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm" style={{ color: COLORS.success }}>
+                    Strong health
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardDescription>Strategic Theme</CardDescription>
+                <CardTitle className="text-lg">{portfolio.strategicTheme}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-600">
+                  Owner: {portfolio.owner}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tabs for Details */}
+          <Tabs defaultValue="overview">
             <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="timeline">Timeline (WBS)</TabsTrigger>
-              <TabsTrigger value="grid">Grid</TabsTrigger>
-              <TabsTrigger value="board">Board</TabsTrigger>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="financials">Financials</TabsTrigger>
+              <TabsTrigger value="risks">Risks</TabsTrigger>
               <TabsTrigger value="features">Features</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="timeline">
-              {renderTimelineView(currentProject)}
+            <TabsContent value="overview">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Portfolio Overview</CardTitle>
+                  <CardDescription>Strategic objectives and current status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2">Description</h3>
+                      <p className="text-slate-600">{portfolio.description}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-2">Strategic Alignment</h3>
+                      <Badge variant="outline">{portfolio.strategicTheme}</Badge>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-2">Status</h3>
+                      <p className="text-slate-600">{portfolio.status}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
-            <TabsContent value="grid">
-              {renderGridView(currentProject)}
+            <TabsContent value="financials">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Financial Summary</CardTitle>
+                  <CardDescription>Budget allocation and spending</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 border rounded">
+                      <span className="text-slate-600">Total Budget</span>
+                      <span className="font-semibold text-lg">{formatCurrency(portfolio.totalBudget)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 border rounded">
+                      <span className="text-slate-600">Actual Spend</span>
+                      <span className="font-semibold text-lg">{formatCurrency(portfolio.actualSpend)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 border rounded">
+                      <span className="text-slate-600">Remaining</span>
+                      <span 
+                        className="font-semibold text-lg"
+                        style={{ color: COLORS.success }}
+                      >
+                        {formatCurrency(portfolio.totalBudget - portfolio.actualSpend)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 border rounded">
+                      <span className="text-slate-600">Spend %</span>
+                      <span className="font-semibold text-lg">
+                        {((portfolio.actualSpend / portfolio.totalBudget) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
-            <TabsContent value="board">
-              {renderBoardView(currentProject)}
+            <TabsContent value="risks">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Portfolio Risks</CardTitle>
+                  <CardDescription>Risk exposure and mitigation status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-slate-500">
+                    View risks in the dedicated Risk Register
+                  </div>
+                  <div className="flex justify-center">
+                    <Button onClick={() => setActiveView('risks')}>
+                      Go to Risk Register
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="features">
@@ -807,117 +1720,89 @@ export default function FinancePPMApp() {
                 appColor={COLORS.primary}
                 features={[
                   {
-                    name: "Work Breakdown Structure (WBS)",
-                    description: "Hierarchical task organization with phases, milestones, and tasks",
+                    name: "Portfolio Management",
+                    description: "Strategic portfolio grouping with health scores and RAG status",
                     status: "active",
                     category: "Core Functionality"
                   },
                   {
-                    name: "Timeline Layout",
-                    description: "Gantt-style timeline view with task dependencies and critical path",
-                    status: "active",
-                    category: "Core Functionality"
-                  },
-                  {
-                    name: "Grid Layout",
-                    description: "Excel-inspired grid for quick data entry and bulk editing",
-                    status: "active",
-                    category: "Core Functionality"
-                  },
-                  {
-                    name: "Board Layout",
-                    description: "Kanban-style board view with drag-and-drop cards",
-                    status: "active",
-                    category: "Core Functionality"
-                  },
-                  {
-                    name: "Task Dependencies",
-                    description: "Finish-Start, Start-Start, Finish-Finish, Start-Finish relationships",
-                    status: "active",
-                    category: "Scheduling"
-                  },
-                  {
-                    name: "Autoschedule",
-                    description: "Automated task scheduling with critical path calculation",
-                    status: "beta",
-                    category: "Scheduling"
-                  },
-                  {
-                    name: "Resource Assignment",
-                    description: "Assign resources, roles, and teams to tasks",
-                    status: "active",
-                    category: "Resource Management"
-                  },
-                  {
-                    name: "ETC & Actuals Tracking",
-                    description: "Estimate To Complete and actual hours tracking",
-                    status: "active",
-                    category: "Time Tracking"
-                  },
-                  {
-                    name: "Baseline Comparison",
-                    description: "Compare current schedule against baseline",
-                    status: "active",
-                    category: "Analytics"
-                  },
-                  {
-                    name: "Portfolio Dashboard",
-                    description: "High-level portfolio metrics and project health",
-                    status: "active",
-                    category: "Analytics"
-                  },
-                  {
-                    name: "Financial Planning",
-                    description: "Budget tracking and cost management",
+                    name: "Financial Planning & Budgeting",
+                    description: "Budget allocation, tracking, and variance analysis by phase and category",
                     status: "active",
                     category: "Financial Management"
                   },
                   {
-                    name: "Risk Management",
-                    description: "Identify and track project risks",
-                    status: "planned",
+                    name: "Risk Register",
+                    description: "Comprehensive risk identification, assessment, and mitigation tracking",
+                    status: "active",
                     category: "Risk Management"
                   },
                   {
-                    name: "Subprojects",
-                    description: "Group related projects under master project",
-                    status: "planned",
-                    category: "Project Management"
+                    name: "KPI Dashboard",
+                    description: "Key performance indicators with targets, actuals, and trend analysis",
+                    status: "active",
+                    category: "Analytics"
                   },
                   {
-                    name: "Timesheet Integration",
-                    description: "Connect tasks with timesheet entries",
-                    status: "planned",
-                    category: "Time Tracking"
+                    name: "Multi-Currency Support",
+                    description: "Budget and financial tracking in PHP and other currencies",
+                    status: "active",
+                    category: "Financial Management"
                   },
                   {
-                    name: "Configurable Widgets",
-                    description: "Custom dashboard widgets with KPIs",
-                    status: "beta",
-                    category: "Customization"
-                  }
-                ]}
-                quickActions={[
-                  {
-                    label: "Create Project",
-                    description: "Start a new project with template",
-                    icon: "🚀"
+                    name: "OPEX/CAPEX Classification",
+                    description: "Budget type tracking for operational and capital expenditures",
+                    status: "active",
+                    category: "Financial Management"
                   },
                   {
-                    label: "View Timeline",
-                    description: "Open Gantt chart view",
-                    icon: "📅"
+                    name: "Variance Analysis",
+                    description: "Automatic calculation of budget variances and percentages",
+                    status: "active",
+                    category: "Analytics"
                   },
                   {
-                    label: "Autoschedule",
-                    description: "Run critical path analysis",
-                    icon: "⚡"
+                    name: "Health Score Tracking",
+                    description: "Portfolio health monitoring with 0-100 scoring system",
+                    status: "active",
+                    category: "Analytics"
                   },
                   {
-                    label: "Portfolio View",
-                    description: "See all projects at a glance",
-                    icon: "📊"
-                  }
+                    name: "RAG Status Indicators",
+                    description: "Red-Amber-Green status visualization for quick health assessment",
+                    status: "active",
+                    category: "Core Functionality"
+                  },
+                  {
+                    name: "Strategic Theme Alignment",
+                    description: "Link portfolios to strategic themes and objectives",
+                    status: "active",
+                    category: "Strategic Planning"
+                  },
+                  {
+                    name: "Risk Exposure Matrix",
+                    description: "Probability × Impact risk assessment with exposure levels",
+                    status: "active",
+                    category: "Risk Management"
+                  },
+                  {
+                    name: "Trend Analysis",
+                    description: "KPI trend tracking (Improving, Stable, Declining, At Risk)",
+                    status: "active",
+                    category: "Analytics"
+                  },
+                  {
+                    name: "Real-time Data Integration",
+                    description: "Integration with Finance Clarity PPM sample data",
+                    status: "active",
+                    category: "Integration"
+                  },
+                  {
+                    name: "Odoo 18 CE + OCA Compatible",
+                    description: "Data structures aligned with Odoo PPM modules",
+                    status: "active",
+                    category: "Integration"
+                  },
                 ]}
               />
             </TabsContent>
@@ -927,17 +1812,5 @@ export default function FinancePPMApp() {
     );
   }
 
-  // Default back to dashboard
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100">
-      <main className="container mx-auto p-6 max-w-7xl">
-        <div className="text-center py-12">
-          <h2 className="text-2xl mb-4">Select a view from the navigation</h2>
-          <Button onClick={() => setActiveView('dashboard')}>
-            Go to Dashboard
-          </Button>
-        </div>
-      </main>
-    </div>
-  );
+  return null;
 }

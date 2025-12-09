@@ -1,0 +1,16 @@
+KPI ID,KPI Name,Category,Formula,Target,Actual,Variance,Variance %,Trend,Data Source,Owner,Frequency,Review Date,Status,Notes
+KPI-001,On-Time Period Close Rate,Cycle Time,(Periods closed on WD7 / Total periods) × 100,100%,92%,-8%,-8.0%,Improving,Full Task Schedule,CKVC,Monthly,2025-01-25,Active,3 of last 12 periods delayed by 1 day
+KPI-002,Budget Variance %,Financial,(Actual - Planned) / Planned × 100,<5%,1.8%,3.2%,64.0%,Stable,Financial Plans,CKVC,Monthly,2025-01-25,Active,Within acceptable range
+KPI-003,Task Completion Rate,Execution,(Completed tasks / Total tasks) × 100,100%,83%,-17%,-17.0%,On Track,Full Task Schedule,RIM,Weekly,2025-01-22,Active,23 of 36 tasks in progress
+KPI-004,High Risk Mitigation %,Risk Management,(Mitigated high risks / Total high risks) × 100,80%,60%,-20%,-25.0%,Declining,Risk Register,RIM,Monthly,2025-01-25,At Risk,3 of 10 high risks still open
+KPI-005,Time Entry Compliance %,Resource,(Submitted timesheets / Expected timesheets) × 100,95%,88%,-7%,-7.4%,Stable,Time Entries,RIM,Weekly,2025-01-22,Active,Some team members delayed entries
+KPI-006,WIP Reconciliation Accuracy,Data Quality,1 - (WIP variance / Total WIP),98%,96.5%,-1.5%,-1.5%,Stable,WIP Schedule (CT-0024),JRMO,Monthly,2025-01-25,Active,Minor timing differences identified
+KPI-007,VAT Compliance Rate,Compliance,(VAT filings on-time / Total VAT filings) × 100,100%,100%,0%,0.0%,Stable,Task Schedule (CT-0004),JLI,Monthly,2025-01-25,Active,No delays in past 12 months
+KPI-008,Accrual Accuracy %,Financial Accuracy,1 - (Accrual reversals / Total accruals),95%,94%,-1%,-1.1%,Stable,Financial Plans (Phase II),BOM,Monthly,2025-01-25,Active,Minor adjustments in depreciation
+KPI-009,Avg Days to Close Period,Cycle Time,SUM(WD per period) / # periods,7,7.3,0.3,4.3%,Improving,Full Task Schedule,CKVC,Monthly,2025-01-25,Active,Recent improvement from 7.8 days avg
+KPI-010,Critical Path Task On-Time %,Schedule Performance,(Critical tasks on-time / Total critical tasks) × 100,95%,90%,-5%,-5.3%,At Risk,WBS Master (Milestones),RIM,Weekly,2025-01-22,At Risk,MS-002 and MS-004 at risk
+KPI-011,Expense Coding Error Rate,Data Quality,(Reclassified expenses / Total expenses) × 100,<3%,5.2%,2.2%,73.3%,Declining,Task CT-0028/CT-0029,RMQB,Monthly,2025-01-25,At Risk,Increased reclassifications this period
+KPI-012,Resource Utilization %,Resource,(Actual hours / Planned hours) × 100,85-95%,87%,2%,2.4%,Stable,Time Entries,RIM,Weekly,2025-01-22,Active,Within target range
+KPI-013,TB Sign-off Cycle Time,Cycle Time,Days from TB ready to CFO sign-off,1 day,1.2 days,0.2 days,20.0%,Stable,Task CT-0036,CKVC,Monthly,2025-01-25,Active,Approval workflow efficient
+KPI-014,Policy Violation Count,Compliance,Count of policy violations per period,0,2,2,N/A,Stable,Risk Register,CKVC,Monthly,2025-01-25,At Risk,2 violations in expense coding this month
+KPI-015,Intercompany Reconciliation %,Data Quality,(Reconciled IC balances / Total IC balances) × 100,100%,98%,-2%,-2.0%,Stable,Task CT-0021,JPAL,Monthly,2025-01-25,Active,Minor timing differences with 1 entity

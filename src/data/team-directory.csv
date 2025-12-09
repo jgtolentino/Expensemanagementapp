@@ -1,0 +1,11 @@
+Code,Name,Email,Role,Department,Active,Email Alerts,Mentions Enabled,Task Assignments,Due Reminders
+CKVC,Khalil Veracruz,khalil.veracruz@omc.com,Finance Manager,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+RIM,Rey Meran,rey.meran@omc.com,Senior Accountant,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+LAS,Amor Lasaga,amor.lasaga@omc.com,Accountant,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+BOM,Beng Manalo,beng.manalo@omc.com,Accountant,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+JAP,Jinky Paladin,jinky.paladin@omc.com,Tax Specialist,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+JPAL,Jerald Loterte,jerald.loterte@omc.com,Payroll Specialist,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+JLI,Jasmin Ignacio,jasmin.ignacio@omc.com,Accounts Payable,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+JRMO,Jhoee Oliva,jhoee.oliva@omc.com,Accounts Receivable,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+JMSM,Joana Maravillas,joana.maravillas@omc.com,Finance Analyst,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
+RMQB,Sally Brillantes,sally.brillantes@omc.com,Finance Coordinator,Finance,TRUE,TRUE,TRUE,TRUE,TRUE
