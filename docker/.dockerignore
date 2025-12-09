@@ -1,0 +1,60 @@
+# =============================================================================
+# Docker Ignore - InsightPulse AI Enterprise
+# =============================================================================
+
+# Git
+.git
+.gitignore
+
+# Development
+.env
+.env.local
+*.log
+*.pyc
+__pycache__
+*.pyo
+*.egg-info
+.eggs
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Node.js (handled separately for canvas-ui)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Tests
+tests
+test
+*_test.py
+test_*.py
+
+# CI/CD
+.github
+.gitlab-ci.yml
+Jenkinsfile
+
+# Local data
+*.sqlite3
+*.db
+data/
+filestore/

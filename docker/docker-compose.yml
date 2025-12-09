@@ -1,0 +1,138 @@
+# =============================================================================
+# InsightPulse AI Enterprise - Docker Compose
+# =============================================================================
+# Usage:
+#   docker-compose up -d        # Start services
+#   docker-compose logs -f odoo # View logs
+#   docker-compose down         # Stop services
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # PostgreSQL Database
+  # ===========================================================================
+  db:
+    image: postgres:15-alpine
+    container_name: insightpulse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-insightpulse}
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data/pgdata
+    networks:
+      - insightpulse-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo} -d ${POSTGRES_DB:-insightpulse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ===========================================================================
+  # Odoo Application Server
+  # ===========================================================================
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: insightpulse-odoo
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      PORT: 5432
+      USER: ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+      DB_NAME: ${POSTGRES_DB:-insightpulse}
+      AUTO_UPGRADE: ${AUTO_UPGRADE:-true}
+      INSTALL_MODULES: ${INSTALL_MODULES:-ipai_ppm_clarity}
+      # Security
+      ODOO_ENCRYPTION_KEY: ${ODOO_ENCRYPTION_KEY:-}
+    ports:
+      - "${ODOO_PORT:-8069}:8069"
+      - "${ODOO_LONGPOLL_PORT:-8072}:8072"
+    volumes:
+      - odoo-web-data:/var/lib/odoo
+      - odoo-addons:/mnt/extra-addons
+      # Development: Mount local addons for hot reload
+      - ../src/odoo/addons:/mnt/extra-addons:ro
+    networks:
+      - insightpulse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # ===========================================================================
+  # React Frontend (PPM Canvas UI)
+  # ===========================================================================
+  canvas-ui:
+    image: node:20-alpine
+    container_name: insightpulse-canvas-ui
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ../src/apps/ppm-canvas:/app
+      - canvas-node-modules:/app/node_modules
+    ports:
+      - "${CANVAS_UI_PORT:-3000}:5173"
+    environment:
+      VITE_ODOO_URL: http://odoo:8069
+      VITE_API_BASE_URL: http://localhost:${ODOO_PORT:-8069}
+    networks:
+      - insightpulse-net
+    depends_on:
+      - odoo
+    profiles:
+      - dev
+
+  # ===========================================================================
+  # Redis (Session & Cache - Optional)
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: insightpulse-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - insightpulse-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - production
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  insightpulse-net:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  odoo-db-data:
+    driver: local
+  odoo-web-data:
+    driver: local
+  odoo-addons:
+    driver: local
+  canvas-node-modules:
+    driver: local
+  redis-data:
+    driver: local
