@@ -13,7 +13,7 @@ The TBWA Agency Databank is a **multi-tenant SaaS platform** integrating 8 enter
 **Framework:** Next.js 14 + React 18 + TypeScript
 
 **Design System:**
-- Deakin Enterprise 365 / Microsoft Fluent Design
+- TBWA Enterprise 365 / Microsoft Fluent Design
 - 2,980+ lines of production-ready components
 - Fully responsive (desktop, tablet, mobile)
 - Dark mode support

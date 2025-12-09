@@ -402,7 +402,7 @@ Built with ❤️ by the TBWA Digital Team
 - Traefik + Let's Encrypt
 
 **Design System:**
-- Deakin Enterprise 365
+- TBWA Enterprise 365
 - Microsoft Fluent Design
 - 2,980+ lines of production-ready code
 

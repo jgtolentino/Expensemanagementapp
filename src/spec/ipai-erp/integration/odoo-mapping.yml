@@ -1,0 +1,655 @@
+# =============================================
+# Odoo ↔ Supabase Integration Mapping
+# =============================================
+# Defines how Odoo models map to shared Postgres schemas
+# Ensures bidirectional sync and data consistency
+
+version: "1.0.0"
+integration_name: "odoo_supabase_bridge"
+description: "Bidirectional sync between Odoo 18 CE ORM and Supabase shared schemas"
+
+# =============================================
+# Architecture Overview
+# =============================================
+architecture:
+  database: "Single shared Postgres database"
+  odoo_connection: "Direct connection to same Supabase Postgres"
+  sync_mechanism: "Odoo models with _table override + triggers"
+  
+  data_flow:
+    odoo_to_supabase:
+      - "Odoo ORM writes → shared schema tables"
+      - "Odoo triggers → Supabase Edge Functions (via webhooks)"
+      
+    supabase_to_odoo:
+      - "Supabase Edge Functions write → shared schema tables"
+      - "Postgres triggers → Odoo cache invalidation"
+      - "Odoo reads from shared tables via ORM"
+      
+  conflict_resolution: "Last-write-wins with audit trail"
+
+# =============================================
+# Core SaaS Spine Mappings
+# =============================================
+core_mappings:
+  # ==========================================
+  # Tenant ↔ Company
+  # ==========================================
+  tenant_company:
+    supabase_table: core.tenant
+    odoo_model: res.company
+    sync_direction: bidirectional
+    primary_entity: supabase
+    
+    odoo_model_definition: |
+      class ResCompany(models.Model):
+          _inherit = 'res.company'
+          
+          # Link to Supabase core.tenant
+          x_tenant_uuid = fields.Char(
+              string='Tenant UUID',
+              help='UUID from core.tenant table',
+              index=True
+          )
+          
+          x_tenant_slug = fields.Char(
+              string='Tenant Slug',
+              help='URL-safe slug from core.tenant'
+          )
+          
+          x_tenant_status = fields.Selection([
+              ('trial', 'Trial'),
+              ('active', 'Active'),
+              ('suspended', 'Suspended'),
+              ('cancelled', 'Cancelled'),
+              ('churned', 'Churned')
+          ], string='Tenant Status')
+          
+          x_mrr = fields.Monetary(
+              string='MRR',
+              help='Monthly Recurring Revenue from core.tenant'
+          )
+          
+          def write(self, vals):
+              res = super().write(vals)
+              # Sync back to core.tenant
+              self._sync_to_supabase_tenant()
+              return res
+          
+          def _sync_to_supabase_tenant(self):
+              # Call Supabase Edge Function to update core.tenant
+              pass
+    
+    field_mapping:
+      # Supabase → Odoo
+      id: x_tenant_uuid
+      name: name
+      display_name: display_name
+      slug: x_tenant_slug
+      status: x_tenant_status
+      mrr: x_mrr
+      currency_code: currency_id.name
+      country_code: country_id.code
+      timezone: x_timezone
+      
+    sync_triggers:
+      on_create:
+        - action: create_odoo_company
+          description: "When core.tenant is created, create res.company"
+          
+      on_update:
+        - action: update_odoo_company
+          description: "Update res.company when core.tenant changes"
+          
+      on_delete:
+        - action: archive_odoo_company
+          description: "Archive (not delete) res.company when tenant deleted"
+
+  # ==========================================
+  # User Profile ↔ User
+  # ==========================================
+  user_profile_user:
+    supabase_table: core.user_profile
+    odoo_model: res.users
+    sync_direction: bidirectional
+    primary_entity: supabase
+    
+    odoo_model_definition: |
+      class ResUsers(models.Model):
+          _inherit = 'res.users'
+          
+          x_user_profile_uuid = fields.Char(
+              string='User Profile UUID',
+              help='UUID from core.user_profile',
+              index=True
+          )
+          
+          x_employee_code = fields.Char(
+              string='Employee Code',
+              help='Employee code (e.g., CKVC, RIM)'
+          )
+          
+          x_role = fields.Selection([
+              ('admin', 'Admin'),
+              ('finance_director', 'Finance Director'),
+              ('finance_manager', 'Finance Manager'),
+              ('supervisor', 'Supervisor'),
+              ('user', 'User'),
+              ('viewer', 'Viewer')
+          ], string='Application Role')
+          
+          x_tenant_id = fields.Many2one(
+              'res.company',
+              string='Tenant',
+              compute='_compute_tenant',
+              store=True
+          )
+          
+          @api.depends('x_user_profile_uuid')
+          def _compute_tenant(self):
+              # Fetch tenant_id from core.user_profile
+              pass
+    
+    field_mapping:
+      id: x_user_profile_uuid
+      email: login
+      full_name: name
+      phone: phone
+      avatar_url: image_1920 (converted)
+      position: x_position
+      employee_code: x_employee_code
+      role: x_role
+      tenant_id: company_id (via tenant mapping)
+      
+    sync_triggers:
+      on_create:
+        - action: create_odoo_user
+          description: "Create res.users when user_profile created"
+          
+      on_update:
+        - action: update_odoo_user
+          
+      on_delete:
+        - action: archive_odoo_user
+
+  # ==========================================
+  # Department ↔ Department
+  # ==========================================
+  department_department:
+    supabase_table: core.department
+    odoo_model: hr.department
+    sync_direction: bidirectional
+    primary_entity: supabase
+    
+    field_mapping:
+      id: x_department_uuid
+      code: x_department_code
+      name: name
+      head_user_id: manager_id (via user mapping)
+      parent_department_id: parent_id (via department mapping)
+      tenant_id: company_id
+
+# =============================================
+# Finance Planner Mappings
+# =============================================
+finance_planner_mappings:
+  # ==========================================
+  # Finance Plan ↔ Project
+  # ==========================================
+  fin_plan_project:
+    supabase_table: finance_compliance.fin_plan
+    odoo_model: project.project
+    sync_direction: bidirectional
+    primary_entity: supabase
+    
+    odoo_model_definition: |
+      class ProjectProject(models.Model):
+          _inherit = 'project.project'
+          
+          x_fin_plan_uuid = fields.Char(
+              string='Finance Plan UUID',
+              index=True
+          )
+          
+          x_plan_type = fields.Selection([
+              ('bir_calendar', 'BIR Calendar'),
+              ('month_end_closing', 'Month-End Closing'),
+              ('onboarding', 'Onboarding'),
+              ('offboarding', 'Offboarding'),
+              ('ppm', 'PPM'),
+              ('custom', 'Custom')
+          ], string='Plan Type')
+          
+          x_is_finance_plan = fields.Boolean(
+              string='Is Finance Plan',
+              compute='_compute_is_finance_plan',
+              store=True
+          )
+          
+          @api.depends('x_fin_plan_uuid')
+          def _compute_is_finance_plan(self):
+              for rec in self:
+                  rec.x_is_finance_plan = bool(rec.x_fin_plan_uuid)
+    
+    field_mapping:
+      id: x_fin_plan_uuid
+      title: name
+      description: description
+      plan_type: x_plan_type
+      owner_user_id: user_id (via user mapping)
+      status: x_status
+      is_pinned: favorite_user_ids (computed)
+      color: color
+      
+    sync_triggers:
+      on_create:
+        - action: create_odoo_project
+          description: "Create project.project when fin_plan created"
+          
+      on_update:
+        - action: update_odoo_project
+
+  # ==========================================
+  # Finance Task ↔ Project Task
+  # ==========================================
+  fin_task_project_task:
+    supabase_table: finance_compliance.fin_task
+    odoo_model: project.task
+    sync_direction: bidirectional
+    primary_entity: supabase
+    
+    odoo_model_definition: |
+      class ProjectTask(models.Model):
+          _inherit = 'project.task'
+          
+          x_fin_task_uuid = fields.Char(
+              string='Finance Task UUID',
+              index=True
+          )
+          
+          x_bucket_name = fields.Char(
+              string='Bucket',
+              help='Planner bucket name'
+          )
+          
+          x_progress_percent = fields.Integer(
+              string='Progress %',
+              default=0
+          )
+          
+          x_checklist_total = fields.Integer(
+              string='Total Checklist Items',
+              compute='_compute_checklist_stats'
+          )
+          
+          x_checklist_completed = fields.Integer(
+              string='Completed Checklist Items',
+              compute='_compute_checklist_stats'
+          )
+          
+          @api.depends('x_fin_task_uuid')
+          def _compute_checklist_stats(self):
+              # Query finance_compliance.fin_checklist_item
+              pass
+    
+    field_mapping:
+      id: x_fin_task_uuid
+      title: name
+      description: description
+      assigned_to_user_id: user_id
+      reviewer_user_id: x_reviewer_id
+      approver_user_id: x_approver_id
+      start_date: date_start
+      due_date: date_deadline
+      status: stage_id (mapped via stages)
+      priority: priority
+      labels: tag_ids (via tags)
+      
+    sync_triggers:
+      on_create:
+        - action: create_odoo_task
+          
+      on_update:
+        - action: update_odoo_task
+        - action: sync_checklist_to_subtasks
+          description: "Optionally sync fin_checklist_item to project.task subtasks"
+
+  # ==========================================
+  # BIR Filing ↔ Project Task
+  # ==========================================
+  bir_filing_project_task:
+    supabase_table: finance_compliance.bir_filing
+    odoo_model: project.task
+    sync_direction: one_way
+    primary_entity: supabase
+    
+    field_mapping:
+      id: x_bir_filing_uuid
+      bir_form_id: x_bir_form_code (store code as char)
+      period_start_date: x_period_start_date
+      period_end_date: x_period_end_date
+      bir_deadline_date: date_deadline
+      status: stage_id
+      responsible_user_id: user_id
+      total_amount_due: x_amount_due
+      
+    sync_triggers:
+      on_create:
+        - action: create_odoo_task_for_bir_filing
+          description: "Create project.task when bir_filing created"
+          
+      on_status_change:
+        - action: update_task_stage
+        - action: send_odoo_notification
+
+  # ==========================================
+  # BIR Task ↔ Mail Activity
+  # ==========================================
+  bir_task_activity:
+    supabase_table: finance_compliance.bir_task
+    odoo_model: mail.activity
+    sync_direction: one_way
+    primary_entity: supabase
+    
+    field_mapping:
+      id: x_bir_task_uuid
+      name: summary
+      description: note
+      assigned_to_user_id: user_id
+      due_date: date_deadline
+      task_type: activity_type_id (mapped)
+      
+    sync_triggers:
+      on_create:
+        - action: create_mail_activity
+          
+      on_complete:
+        - action: mark_activity_done
+
+  # ==========================================
+  # Month-End Task ↔ Project Task
+  # ==========================================
+  month_end_task_project_task:
+    supabase_table: finance_compliance.month_end_task
+    odoo_model: project.task
+    sync_direction: bidirectional
+    primary_entity: supabase
+    
+    field_mapping:
+      id: x_month_end_task_uuid
+      wbs_code: x_wbs_code
+      task_name: name
+      description: description
+      responsible_user_id: user_id
+      due_date: date_deadline
+      status: stage_id
+      
+    sync_triggers:
+      on_create:
+        - action: create_odoo_task
+          
+      on_update:
+        - action: update_odoo_task
+
+# =============================================
+# Accounting Integration
+# =============================================
+accounting_mappings:
+  # ==========================================
+  # BIR Filing ↔ Account Move (Journal Entry)
+  # ==========================================
+  bir_filing_account_move:
+    supabase_table: finance_compliance.bir_filing
+    odoo_model: account.move
+    sync_direction: one_way
+    primary_entity: odoo
+    
+    description: "Link BIR filing to tax JE in Odoo Accounting"
+    
+    field_mapping:
+      odoo_account_move_id: id (store Odoo JE ID in bir_filing)
+      tax_due_amount: amount_total
+      period_start_date: x_period_start
+      period_end_date: x_period_end
+      
+    sync_triggers:
+      on_je_post:
+        - action: update_bir_filing_with_move_id
+          description: "Store account.move ID in bir_filing.odoo_account_move_id"
+          
+      on_payment:
+        - action: update_bir_filing_payment_info
+
+# =============================================
+# Sync Implementation Patterns
+# =============================================
+sync_patterns:
+  # Pattern 1: Odoo model with _table override
+  odoo_table_override:
+    description: "Odoo model reads/writes directly to Supabase table"
+    example: |
+      class CoreTenant(models.Model):
+          _name = 'core.tenant'
+          _description = 'Tenant (from Supabase)'
+          _table = 'core.tenant'  # Use Supabase table directly
+          
+          id = fields.Char(string='UUID', required=True)
+          name = fields.Char(required=True)
+          slug = fields.Char(required=True)
+          # ... other fields match Supabase schema
+          
+          @api.model
+          def create(self, vals):
+              # Generate UUID
+              vals['id'] = str(uuid.uuid4())
+              return super().create(vals)
+    
+    pros:
+      - "Direct read/write, no sync lag"
+      - "Single source of truth"
+      - "No duplicate data"
+      
+    cons:
+      - "Odoo ORM conventions may conflict with Supabase conventions"
+      - "Careful schema design required"
+      
+  # Pattern 2: Odoo model with custom sync methods
+  odoo_sync_methods:
+    description: "Odoo model uses standard _table, syncs via methods"
+    example: |
+      class ProjectTask(models.Model):
+          _inherit = 'project.task'
+          
+          x_fin_task_uuid = fields.Char(index=True)
+          
+          def write(self, vals):
+              res = super().write(vals)
+              # Sync to Supabase
+              self._sync_to_supabase()
+              return res
+          
+          def _sync_to_supabase(self):
+              supabase_client = self.env['supabase.client'].get_client()
+              for task in self:
+                  if task.x_fin_task_uuid:
+                      supabase_client.table('finance_compliance.fin_task').update({
+                          'title': task.name,
+                          'description': task.description,
+                          'status': self._map_stage_to_status(task.stage_id),
+                          'updated_at': fields.Datetime.now()
+                      }).eq('id', task.x_fin_task_uuid).execute()
+    
+    pros:
+      - "Familiar Odoo patterns"
+      - "Full control over sync logic"
+      - "Can handle complex transformations"
+      
+    cons:
+      - "Potential sync lag"
+      - "Duplicate data"
+      - "Requires conflict resolution"
+      
+  # Pattern 3: Postgres triggers for bidirectional sync
+  postgres_triggers:
+    description: "Postgres triggers propagate changes between tables"
+    example: |
+      -- Trigger when core.user_profile changes
+      CREATE OR REPLACE FUNCTION sync_user_profile_to_res_users()
+      RETURNS TRIGGER AS $$
+      BEGIN
+          UPDATE res_users
+          SET
+              name = NEW.full_name,
+              login = NEW.email,
+              phone = NEW.phone
+          WHERE id = NEW.odoo_user_id;
+          RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      
+      CREATE TRIGGER user_profile_to_odoo
+      AFTER UPDATE ON core.user_profile
+      FOR EACH ROW
+      EXECUTE FUNCTION sync_user_profile_to_res_users();
+    
+    pros:
+      - "Real-time sync"
+      - "No application code required"
+      - "Guaranteed consistency"
+      
+    cons:
+      - "Complex trigger logic"
+      - "Hard to debug"
+      - "Can cause performance issues"
+
+# =============================================
+# Recommended Implementation Strategy
+# =============================================
+recommended_strategy:
+  phase_1_foundation:
+    description: "Use Pattern 1 (table override) for core entities"
+    tables:
+      - core.tenant → res.company (with _table = 'core.tenant' + bridge table)
+      - core.user_profile → res.users (bridge only, keep separate tables)
+      - core.department → hr.department (bridge)
+      
+  phase_2_domain:
+    description: "Use Pattern 2 (sync methods) for domain entities"
+    tables:
+      - finance_compliance.fin_plan → project.project (sync via methods)
+      - finance_compliance.fin_task → project.task (sync via methods)
+      - finance_compliance.bir_filing → project.task (one-way sync)
+      
+  phase_3_optimization:
+    description: "Add Pattern 3 (triggers) for critical paths"
+    triggers:
+      - "core.user_profile → res.users (name, email sync)"
+      - "finance_compliance.bir_filing.status → project.task.stage_id"
+
+# =============================================
+# Odoo Module Structure
+# =============================================
+odoo_bridge_module:
+  name: "ipai_odoo_supabase_bridge"
+  depends:
+    - base
+    - mail
+    - project
+    - account
+    - hr
+    
+  models:
+    - models/core_tenant.py
+    - models/core_user_profile.py
+    - models/core_department.py
+    - models/fin_plan.py
+    - models/fin_task.py
+    - models/bir_filing.py
+    - models/bir_task.py
+    - models/month_end_task.py
+    - models/supabase_client.py (connection helper)
+    
+  data:
+    - data/project_stages.xml (map fin_task status → project.task.type)
+    - data/mail_activity_types.xml (for bir_task activities)
+    
+  security:
+    - security/ir.model.access.csv
+    - security/record_rules.xml (RLS enforcement in Odoo)
+
+# =============================================
+# Stage/Status Mapping
+# =============================================
+stage_mapping:
+  fin_task_status_to_project_stage:
+    not_started: "To Do"
+    in_progress: "In Progress"
+    under_review: "Under Review"
+    approved: "Approved"
+    completed: "Done"
+    blocked: "Blocked"
+    late: "Late"
+    
+  bir_filing_status_to_project_stage:
+    draft: "Draft"
+    in_preparation: "In Progress"
+    under_review: "Review"
+    approved: "Approved"
+    filed: "Filed"
+    paid: "Done"
+    late: "Late"
+    cancelled: "Cancelled"
+
+# =============================================
+# Conflict Resolution
+# =============================================
+conflict_resolution:
+  strategy: "last_write_wins"
+  audit: "All changes logged in audit.data_change"
+  
+  resolution_rules:
+    - entity: core.user_profile
+      field: name
+      rule: "Supabase wins (primary source)"
+      
+    - entity: project.task
+      field: stage_id
+      rule: "Odoo wins (users work in Odoo)"
+      
+    - entity: finance_compliance.bir_filing
+      field: status
+      rule: "Supabase wins (Finance Planner is primary)"
+
+# =============================================
+# Migration Path
+# =============================================
+migration:
+  step_1:
+    description: "Deploy core schemas to Supabase Postgres"
+    actions:
+      - "Run migrations/core/*.sql"
+      - "Seed core.tenant, core.user_profile from existing Odoo data"
+      
+  step_2:
+    description: "Install ipai_odoo_supabase_bridge module"
+    actions:
+      - "Install module in Odoo"
+      - "Run bridge setup wizard to link existing res.company → core.tenant"
+      
+  step_3:
+    description: "Deploy finance_planner schemas"
+    actions:
+      - "Run migrations/finance_planner/*.sql"
+      - "Seed bir_form, month_end_task_template"
+      
+  step_4:
+    description: "Enable bidirectional sync"
+    actions:
+      - "Activate sync methods in Odoo models"
+      - "Test create/update/delete flows both directions"
+      
+  step_5:
+    description: "Cutover to Finance Planner UI"
+    actions:
+      - "Users access Finance Planner (React UI) for BIR/month-end tasks"
+      - "Odoo shows read-only view of synced tasks in project.task"

@@ -1,0 +1,875 @@
+# =============================================
+# ipai ERP SaaS - Master Module Registry
+# =============================================
+# Canonical source of truth for all modules in the ipai ERP ecosystem
+# Maps Enterprise feature areas → CE + OCA + ipai_* Smart Delta
+
+version: "1.0.0"
+registry_name: "ipai-erp-saas"
+description: "Full-stack SaaS ERP with Odoo 18 CE + OCA + ipai_* Smart Delta on shared Postgres"
+canonical_database: "supabase_postgres"
+odoo_version: "18.0"
+
+# =============================================
+# Global Architecture Principles
+# =============================================
+principles:
+  - "One canonical truth: All data in shared Postgres schemas"
+  - "Odoo CE + OCA = interaction surface (UI, workflows, reports)"
+  - "ipai_* = AI + Smart Delta augmentation"
+  - "Supabase = API + Analytics + Edge Functions"
+  - "Spec Kits = source of truth for schemas, migrations, and rules"
+  - "Multi-tenant by design: core.tenant → workspace → domain data"
+
+# =============================================
+# Core SaaS Spine (required for ALL verticals)
+# =============================================
+core_modules:
+  ipai_core_saas:
+    type: ipai_smart_delta
+    description: "Multi-tenant SaaS backbone: tenants, workspaces, subscriptions"
+    schemas:
+      - core.tenant
+      - core.workspace
+      - core.subscription
+      - core.user_profile
+      - core.plan
+      - core.feature_flag
+    odoo_models:
+      - res.company (mapped to core.tenant)
+      - res.users (linked to core.user_profile)
+    spec_kit: "spec/ipai-erp/core/schema.yml"
+    dependencies: []
+    
+  ipai_core_auth:
+    type: ipai_smart_delta
+    description: "Extended RBAC, org structure, Supabase Auth integration"
+    schemas:
+      - core.role
+      - core.permission
+      - core.team
+      - core.department
+    odoo_models:
+      - res.groups
+      - hr.employee
+      - hr.department
+    spec_kit: "spec/ipai-erp/core/auth-schema.yml"
+    dependencies:
+      - ipai_core_saas
+      
+  ipai_idp_documents:
+    type: ipai_smart_delta
+    description: "Intelligent Document Processing: OCR, extraction, embeddings, RAG"
+    schemas:
+      - idp.document
+      - idp.page
+      - idp.chunk
+      - idp.embedding
+      - idp.extraction_job
+    odoo_models:
+      - documents.document (optional bridge)
+      - ir.attachment (metadata sync)
+    spec_kit: "spec/ipai-erp/core/idp-schema.yml"
+    dependencies:
+      - ipai_core_saas
+      
+  ipai_audit_log:
+    type: ipai_smart_delta
+    description: "Audit trails, config history, data changes"
+    schemas:
+      - audit.activity_log
+      - audit.data_change
+      - audit.config_history
+    spec_kit: "spec/ipai-erp/core/audit-schema.yml"
+    dependencies:
+      - ipai_core_saas
+
+# =============================================
+# Domain 1: Accounting & Finance
+# =============================================
+# Enterprise reference: Accounting, Consolidation, Assets, Budgets, Tax
+# CE + OCA base: account, account_asset, account_budget, analytic
+# ipai_* augmentation: Finance Planner, Tax Engine, PPM
+
+finance_modules:
+  # --- Odoo CE Core ---
+  account:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Full GL, multi-company, analytic accounting"
+    
+  account_asset:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Asset management, depreciation"
+    
+  account_budget:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Budget planning and control"
+    
+  analytic:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Analytic accounting, cost centers"
+    
+  # --- OCA Enhancements ---
+  account_financial_tools:
+    type: oca
+    repo: "account-financial-tools"
+    version: "18.0"
+    description: "Closing sequences, recurring entries, financial reports"
+    
+  account_closing:
+    type: oca
+    repo: "account-closing"
+    version: "18.0"
+    description: "Period closing wizards, lock dates"
+    
+  account_reconcile:
+    type: oca
+    repo: "account-reconcile"
+    version: "18.0"
+    description: "Advanced reconciliation tools"
+    
+  account_payment:
+    type: oca
+    repo: "account-payment"
+    version: "18.0"
+    description: "Payment workflows, batch payments"
+    
+  bank_statement_import:
+    type: oca
+    repo: "bank-statement-import"
+    version: "18.0"
+    description: "CSV/OFX/CAMT import"
+    
+  # --- ipai Smart Delta ---
+  ipai_finance_planner:
+    type: ipai_smart_delta
+    description: "Microsoft Planner-inspired finance task management: BIR calendar, month-end closing, onboarding"
+    schemas:
+      - finance_compliance.fin_plan
+      - finance_compliance.fin_bucket
+      - finance_compliance.fin_task
+      - finance_compliance.fin_checklist_item
+      - finance_compliance.bir_form
+      - finance_compliance.bir_filing
+      - finance_compliance.bir_task
+      - finance_compliance.month_end_period
+      - finance_compliance.month_end_task
+    odoo_models:
+      - project.task (bridge to planner tasks)
+      - mail.activity (notifications)
+    spec_kit: "spec/ipai-erp/modules/finance_planner/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - account
+      
+  ipai_te_tax:
+    type: ipai_smart_delta
+    description: "Philippine BIR tax engine: 2550M/Q, 1601C, 1601EQ, 1702, deterministic rules"
+    schemas:
+      - te_tax.form_definition
+      - te_tax.tax_rule
+      - te_tax.tax_rate
+      - te_tax.filing_schedule
+      - te_tax.computation_override
+    odoo_models:
+      - account.tax (mapped to te_tax rules)
+      - account.move (tax JEs)
+    spec_kit: "spec/ipai-erp/modules/te_tax/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - account
+      - ipai_finance_planner
+      
+  ipai_finance_ppm:
+    type: ipai_smart_delta
+    description: "Finance Portfolio & Project Management: CAPEX/OPEX budgets, finance PPM views"
+    schemas:
+      - finance_ppm.portfolio
+      - finance_ppm.program
+      - finance_ppm.project_finance
+      - finance_ppm.budget_line
+      - finance_ppm.forecast
+    odoo_models:
+      - project.project (extended with PPM fields)
+      - account.budget (linked to portfolios)
+    spec_kit: "spec/ipai-erp/modules/finance_ppm/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - account
+      - account_budget
+      - project
+      
+  ipai_finance_closing:
+    type: ipai_smart_delta
+    description: "Month/Quarter/Year-End closing orchestration using Finance Planner"
+    schemas:
+      - Uses finance_compliance.* from ipai_finance_planner
+    odoo_models:
+      - account.move (closing entries)
+      - account.period (lock dates)
+    spec_kit: "spec/ipai-erp/modules/finance_closing/schema.yml"
+    dependencies:
+      - ipai_finance_planner
+      - account_closing
+
+# =============================================
+# Domain 2: CRM, Sales, Subscription
+# =============================================
+# Enterprise reference: CRM, Sales, Subscriptions, Helpdesk
+# CE + OCA base: crm, sale_management, subscription, helpdesk
+# ipai_* augmentation: Auto-SDR (Arkie), AI Helpdesk
+
+crm_sales_modules:
+  # --- Odoo CE Core ---
+  crm:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "CRM pipelines, activities, lead scoring"
+    
+  sale_management:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Sales orders, quotations"
+    
+  subscription:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Subscription billing, recurring revenue"
+    
+  helpdesk:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Ticketing, SLA tracking"
+    
+  # --- OCA Enhancements ---
+  crm_extras:
+    type: oca
+    repo: "crm"
+    version: "18.0"
+    description: "Lead assignment, advanced scoring"
+    
+  contract:
+    type: oca
+    repo: "contract"
+    version: "18.0"
+    description: "Long-term contracts, renewals"
+    
+  helpdesk_mgmt:
+    type: oca
+    repo: "helpdesk"
+    version: "18.0"
+    description: "Multi-team, SLA automation"
+    
+  # --- ipai Smart Delta ---
+  ipai_crm_sdr:
+    type: ipai_smart_delta
+    description: "Auto-SDR (Arkie): AI outbound sequences, playbooks, conversation intelligence"
+    schemas:
+      - crm_sdr.sequence
+      - crm_sdr.playbook
+      - crm_sdr.touchpoint
+      - crm_sdr.conversation
+    odoo_models:
+      - crm.lead (linked to SDR sequences)
+      - mail.message (AI-generated outreach)
+    spec_kit: "spec/ipai-erp/modules/crm_sdr/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - crm
+      
+  ipai_subscription_saas:
+    type: ipai_smart_delta
+    description: "SaaS subscription management: tenant plans, entitlements, usage metering"
+    schemas:
+      - Extends core.subscription
+      - subscription_saas.entitlement
+      - subscription_saas.usage_event
+      - subscription_saas.metering
+    odoo_models:
+      - sale.subscription (mapped to core.subscription)
+    spec_kit: "spec/ipai-erp/modules/subscription_saas/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - subscription
+      
+  ipai_helpdesk_ai:
+    type: ipai_smart_delta
+    description: "AI-powered helpdesk: auto-triage, summarization, reply suggestions"
+    schemas:
+      - helpdesk_ai.ticket_summary
+      - helpdesk_ai.suggested_reply
+      - helpdesk_ai.knowledge_match
+    odoo_models:
+      - helpdesk.ticket (extended)
+    spec_kit: "spec/ipai-erp/modules/helpdesk_ai/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - helpdesk
+      - ipai_idp_documents
+
+# =============================================
+# Domain 3: Projects, PPM, Timesheets
+# =============================================
+# Enterprise reference: Projects, Timesheets, Planning
+# CE + OCA base: project, hr_timesheet
+# ipai_* augmentation: PPM Planner Bridge, AI WBS
+
+project_modules:
+  # --- Odoo CE Core ---
+  project:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Projects, tasks, milestones"
+    
+  hr_timesheet:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Timesheets, planning vs actuals"
+    
+  # --- OCA Enhancements ---
+  project_extras:
+    type: oca
+    repo: "project"
+    version: "18.0"
+    description: "Task dependencies, Gantt, risk fields"
+    
+  hr_timesheet_analysis:
+    type: oca
+    repo: "hr-timesheet"
+    version: "18.0"
+    description: "Timesheet approvals, analytics"
+    
+  # --- ipai Smart Delta ---
+  ipai_ppm_planner_bridge:
+    type: ipai_smart_delta
+    description: "Bridge Finance Planner to Project tasks for PPM workflows"
+    schemas:
+      - Uses finance_compliance.fin_plan with plan_type = 'ppm'
+    odoo_models:
+      - project.task (synced with fin_task)
+      - project.project (linked to fin_plan)
+    spec_kit: "spec/ipai-erp/modules/ppm_planner_bridge/schema.yml"
+    dependencies:
+      - ipai_finance_planner
+      - project
+      
+  ipai_ppm_ai:
+    type: ipai_smart_delta
+    description: "AI-powered PPM: WBS suggestions, risk register, mitigation tasks"
+    schemas:
+      - ppm_ai.wbs_suggestion
+      - ppm_ai.risk_register
+      - ppm_ai.mitigation_plan
+    odoo_models:
+      - project.project (AI-enhanced)
+    spec_kit: "spec/ipai-erp/modules/ppm_ai/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - project
+
+# =============================================
+# Domain 4: Inventory, Purchase, MRP
+# =============================================
+# Enterprise reference: Inventory, Purchase, MRP
+# CE + OCA base: stock, purchase, mrp
+# ipai_* augmentation: Supply Planner (Scout integration)
+
+supply_chain_modules:
+  # --- Odoo CE Core ---
+  stock:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Multi-warehouse, routes, reorder rules"
+    
+  purchase:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Purchase orders, agreements"
+    
+  mrp:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Manufacturing, BOMs, work orders"
+    
+  # --- OCA Enhancements ---
+  stock_logistics_warehouse:
+    type: oca
+    repo: "stock-logistics-warehouse"
+    version: "18.0"
+    description: "Advanced warehouse operations"
+    
+  purchase_workflow:
+    type: oca
+    repo: "purchase-workflow"
+    version: "18.0"
+    description: "Purchase approval, RFQ automation"
+    
+  # --- ipai Smart Delta ---
+  ipai_supply_planner:
+    type: ipai_smart_delta
+    description: "Supply planning: Scout retail data → stock/purchase recommendations"
+    schemas:
+      - supply_planner.demand_forecast
+      - supply_planner.reorder_recommendation
+      - supply_planner.supplier_suggestion
+    odoo_models:
+      - stock.warehouse.orderpoint (AI-optimized)
+      - purchase.order (auto-generated from recommendations)
+    spec_kit: "spec/ipai-erp/modules/supply_planner/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - stock
+      - purchase
+      - ipai_scout_retail_core
+
+# =============================================
+# Domain 5: HR, Payroll, People Ops
+# =============================================
+# Enterprise reference: HR, Payroll, Recruitment
+# CE + OCA base: hr, hr_contract, hr_holidays, hr_recruitment
+# ipai_* augmentation: HR Planner, AI Coach
+
+hr_modules:
+  # --- Odoo CE Core ---
+  hr:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Employees, contracts, org chart"
+    
+  hr_contract:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Employment contracts"
+    
+  hr_holidays:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Time off, leave management"
+    
+  hr_recruitment:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Recruitment pipelines"
+    
+  hr_attendance:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Attendance tracking"
+    
+  # --- OCA Enhancements ---
+  hr_expense_advanced:
+    type: oca
+    repo: "hr-expense"
+    version: "18.0"
+    description: "Advanced expense workflows"
+    
+  payroll:
+    type: oca
+    repo: "payroll"
+    version: "18.0"
+    description: "Payroll structure, payslips"
+    
+  # --- ipai Smart Delta ---
+  ipai_hr_core:
+    type: ipai_smart_delta
+    description: "Link core.user_profile ↔ hr.employee, tenant-aware org structure"
+    schemas:
+      - Extends core.user_profile
+      - hr_core.employee_extended
+    odoo_models:
+      - hr.employee (synced with core.user_profile)
+    spec_kit: "spec/ipai-erp/modules/hr_core/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - hr
+      
+  ipai_hr_onboarding:
+    type: ipai_smart_delta
+    description: "Onboarding/Offboarding using Finance Planner (plan_type = 'onboarding')"
+    schemas:
+      - Uses finance_compliance.fin_plan with plan_type in ('onboarding', 'offboarding')
+    odoo_models:
+      - hr.employee (triggers onboarding plan)
+    spec_kit: "spec/ipai-erp/modules/hr_onboarding/schema.yml"
+    dependencies:
+      - ipai_finance_planner
+      - hr
+      
+  ipai_hr_ai_coach:
+    type: ipai_smart_delta
+    description: "AI-generated onboarding checklists, learning plans, career coaching"
+    schemas:
+      - hr_ai.learning_plan
+      - hr_ai.coaching_session
+      - hr_ai.skill_gap_analysis
+    odoo_models:
+      - hr.employee (AI-enhanced)
+    spec_kit: "spec/ipai-erp/modules/hr_ai_coach/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - hr
+
+# =============================================
+# Domain 6: Documents, Knowledge, Website
+# =============================================
+# Enterprise reference: Documents, Knowledge, Website, eCommerce
+# CE + OCA base: documents, website, website_sale, knowledge
+# ipai_* augmentation: IDP Documents, Knowledge AI, Marketing Site
+
+content_modules:
+  # --- Odoo CE Core ---
+  documents:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Document management, folders, tags"
+    
+  website:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Website builder"
+    
+  website_sale:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "eCommerce"
+    
+  knowledge:
+    type: odoo_ce_core
+    version: "18.0"
+    description: "Internal wiki, knowledge base"
+    
+  # --- OCA Enhancements ---
+  document_workflow:
+    type: oca
+    repo: "document"
+    version: "18.0"
+    description: "Document versioning, workflows"
+    
+  website_extras:
+    type: oca
+    repo: "website"
+    version: "18.0"
+    description: "SEO, analytics, multi-site"
+    
+  # --- ipai Smart Delta ---
+  # (ipai_idp_documents already defined in core)
+  
+  ipai_knowledge_ai:
+    type: ipai_smart_delta
+    description: "RAG over Odoo docs, spec files, project artifacts"
+    schemas:
+      - knowledge_ai.article_embedding
+      - knowledge_ai.question_answer
+      - knowledge_ai.knowledge_graph
+    odoo_models:
+      - knowledge.article (RAG-indexed)
+      - documents.document (RAG-indexed)
+    spec_kit: "spec/ipai-erp/modules/knowledge_ai/schema.yml"
+    dependencies:
+      - ipai_idp_documents
+      - knowledge
+      
+  ipai_marketing_site:
+    type: ipai_smart_delta
+    description: "Multi-tenant marketing site templates for ERP SaaS landing pages"
+    schemas:
+      - marketing_site.template
+      - marketing_site.page
+      - marketing_site.lead_capture
+    odoo_models:
+      - website (multi-tenant)
+      - crm.lead (from marketing site)
+    spec_kit: "spec/ipai-erp/modules/marketing_site/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - website
+      - crm
+
+# =============================================
+# Domain 7: Retail (Scout)
+# =============================================
+# Vertical-specific: Sari-Sari/Scout dashboards, Sari IQ parity
+
+retail_modules:
+  ipai_scout_retail_core:
+    type: ipai_smart_delta
+    description: "Scout retail core: products, stores, transactions, KPIs"
+    schemas:
+      - scout.product
+      - scout.store
+      - scout.transaction
+      - scout.kpi
+      - scout.promotion
+      - scout.inventory_snapshot
+    odoo_models:
+      - product.product (synced with scout.product)
+      - stock.warehouse (mapped to scout.store)
+    spec_kit: "spec/ipai-erp/modules/scout_retail_core/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - stock
+      
+  ipai_scout_ai_bi:
+    type: ipai_smart_delta
+    description: "Scout AI BI: NL→SQL, insights, Wren-style RAG"
+    schemas:
+      - scout_ai.query_log
+      - scout_ai.insight
+      - scout_ai.recommendation
+    spec_kit: "spec/ipai-erp/modules/scout_ai_bi/schema.yml"
+    dependencies:
+      - ipai_scout_retail_core
+      - ipai_idp_documents
+
+# =============================================
+# Domain 8: Creative Ops (CES, LIONS)
+# =============================================
+# Vertical-specific: Campaign effectiveness, creative scoring
+
+creative_modules:
+  ipai_creative_ops:
+    type: ipai_smart_delta
+    description: "Creative operations: campaigns, assets, CES scores, LIONS metrics"
+    schemas:
+      - creative_ops.campaign
+      - creative_ops.asset
+      - creative_ops.ces_score
+      - creative_ops.lions_metric
+      - creative_ops.brief
+    odoo_models:
+      - project.project (campaigns)
+      - documents.document (creative assets)
+    spec_kit: "spec/ipai-erp/modules/creative_ops/schema.yml"
+    dependencies:
+      - ipai_core_saas
+      - project
+      - documents
+      
+  ipai_creative_ai:
+    type: ipai_smart_delta
+    description: "AI-powered creative: scoring, brief generation, storyboard helpers"
+    schemas:
+      - creative_ai.effectiveness_prediction
+      - creative_ai.brief_suggestion
+      - creative_ai.storyboard
+    spec_kit: "spec/ipai-erp/modules/creative_ai/schema.yml"
+    dependencies:
+      - ipai_creative_ops
+      - ipai_idp_documents
+
+# =============================================
+# Integration & Connectors
+# =============================================
+integration_modules:
+  queue_job:
+    type: oca
+    repo: "queue"
+    version: "18.0"
+    description: "Async job processing"
+    
+  connector:
+    type: oca
+    repo: "connector"
+    version: "18.0"
+    description: "Framework for external connectors"
+    
+  ipai_odoo_supabase_bridge:
+    type: ipai_smart_delta
+    description: "Bidirectional sync between Odoo ORM ↔ Supabase schemas"
+    spec_kit: "spec/ipai-erp/integration/odoo-supabase-bridge.yml"
+    dependencies:
+      - ipai_core_saas
+      - queue_job
+
+# =============================================
+# Build & Deploy Tooling
+# =============================================
+tooling:
+  spec_kit_validator:
+    description: "Validates all schema.yml files against registry"
+    script: "scripts/validate-spec-kits.py"
+    
+  migration_generator:
+    description: "Generates SQL migrations from schema.yml"
+    script: "scripts/generate-migrations.py"
+    
+  schema_audit:
+    description: "Audits DB schema against Spec Kits"
+    script: "scripts/audit-schema.py"
+    
+  odoo_module_generator:
+    description: "Generates Odoo module skeleton from Spec Kit"
+    script: "scripts/generate-odoo-module.py"
+
+# =============================================
+# Deployment Topology
+# =============================================
+deployment:
+  database: "Supabase Postgres (shared)"
+  odoo_instance: "Odoo 18 CE (connects to Supabase DB)"
+  api_layer: "Supabase Edge Functions (Hono)"
+  analytics: "Supabase Analytics Buckets + Superset"
+  storage: "Supabase Storage (documents, attachments)"
+  auth: "Supabase Auth (synced to core.user_profile)"
+  automation: "n8n + Supabase Cron"
+
+# =============================================
+# Schema Ownership Map
+# =============================================
+schema_ownership:
+  core:
+    owner: ipai_core_saas
+    tables:
+      - tenant
+      - workspace
+      - subscription
+      - user_profile
+      - plan
+      - feature_flag
+      - role
+      - permission
+      - team
+      - department
+      
+  idp:
+    owner: ipai_idp_documents
+    tables:
+      - document
+      - page
+      - chunk
+      - embedding
+      - extraction_job
+      
+  audit:
+    owner: ipai_audit_log
+    tables:
+      - activity_log
+      - data_change
+      - config_history
+      
+  finance_compliance:
+    owner: ipai_finance_planner
+    tables:
+      - fin_plan
+      - fin_bucket
+      - fin_task
+      - fin_checklist_item
+      - bir_form
+      - bir_filing
+      - bir_task
+      - month_end_period
+      - month_end_task
+      
+  te_tax:
+    owner: ipai_te_tax
+    tables:
+      - form_definition
+      - tax_rule
+      - tax_rate
+      - filing_schedule
+      - computation_override
+      
+  finance_ppm:
+    owner: ipai_finance_ppm
+    tables:
+      - portfolio
+      - program
+      - project_finance
+      - budget_line
+      - forecast
+      
+  scout:
+    owner: ipai_scout_retail_core
+    tables:
+      - product
+      - store
+      - transaction
+      - kpi
+      - promotion
+      - inventory_snapshot
+      
+  creative_ops:
+    owner: ipai_creative_ops
+    tables:
+      - campaign
+      - asset
+      - ces_score
+      - lions_metric
+      - brief
+
+# =============================================
+# CI/CD Guardrails
+# =============================================
+ci_guardrails:
+  - name: "Spec Kit presence check"
+    rule: "Every ipai_* module MUST have a spec_kit defined"
+    
+  - name: "Schema migration sync"
+    rule: "All schema.yml changes MUST generate SQL migrations"
+    
+  - name: "Schema audit on deploy"
+    rule: "Deployed DB schema MUST match spec_kit definitions"
+    
+  - name: "Dependency validation"
+    rule: "Module dependencies MUST be satisfied in deployment order"
+    
+  - name: "RLS policy enforcement"
+    rule: "All tenant-scoped tables MUST have RLS policies"
+
+# =============================================
+# Roadmap & Phases
+# =============================================
+implementation_phases:
+  phase_1_foundation:
+    description: "Core SaaS spine + Finance domain"
+    modules:
+      - ipai_core_saas
+      - ipai_core_auth
+      - ipai_idp_documents
+      - ipai_audit_log
+      - ipai_finance_planner
+      - ipai_te_tax
+      - ipai_finance_ppm
+    timeline: "Month 1-2"
+    
+  phase_2_crm_sales:
+    description: "CRM, Sales, Subscriptions"
+    modules:
+      - ipai_crm_sdr
+      - ipai_subscription_saas
+      - ipai_helpdesk_ai
+    timeline: "Month 3-4"
+    
+  phase_3_projects_hr:
+    description: "Projects, PPM, HR"
+    modules:
+      - ipai_ppm_planner_bridge
+      - ipai_ppm_ai
+      - ipai_hr_core
+      - ipai_hr_onboarding
+      - ipai_hr_ai_coach
+    timeline: "Month 5-6"
+    
+  phase_4_verticals:
+    description: "Retail (Scout) + Creative Ops"
+    modules:
+      - ipai_scout_retail_core
+      - ipai_scout_ai_bi
+      - ipai_creative_ops
+      - ipai_creative_ai
+    timeline: "Month 7-9"
+    
+  phase_5_content:
+    description: "Knowledge, Documents, Website"
+    modules:
+      - ipai_knowledge_ai
+      - ipai_marketing_site
+    timeline: "Month 10-12"
+
+# =============================================
+# End of Registry
+# =============================================

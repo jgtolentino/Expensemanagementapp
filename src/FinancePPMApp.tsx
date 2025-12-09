@@ -19,6 +19,8 @@ import { portfolioDashboard } from './lib/data/ppm-sample-data';
 import { PortfolioDashboard } from './components/portfolio-dashboard';
 import KanbanBoardImproved from './components/KanbanBoardImproved';
 import TaskDetailView from './components/TaskDetailView';
+import { PlannerView } from './components/planner/PlannerView';
+import { FinancePlannerView } from './components/planner/FinancePlannerView';
 
 const COLORS = {
   primary: '#D97706',
@@ -83,7 +85,7 @@ interface Risk {
 }
 
 export default function FinancePPMApp() {
-  const [activeView, setActiveView] = useState<'dashboard' | 'portfolio' | 'portfolio-dashboard' | 'financials' | 'risks' | 'kpis' | 'logframe' | 'tasks' | 'team'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'portfolio' | 'portfolio-dashboard' | 'financials' | 'risks' | 'kpis' | 'logframe' | 'tasks' | 'team' | 'planner' | 'finance-planner'>('dashboard');
   const [selectedPortfolio, setSelectedPortfolio] = useState<string | null>(null);
   const [selectedObjective, setSelectedObjective] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskEnhanced | null>(null);
@@ -391,6 +393,36 @@ export default function FinancePPMApp() {
                   <div className="text-xs text-slate-500">{getAllTasks(allTasksEnhanced).length} tasks</div>
                 </div>
               </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start relative group"
+              onClick={() => setActiveView('planner')}
+            >
+              <div className="flex items-start gap-3">
+                <ListChecks className="h-5 w-5 mt-1" style={{ color: COLORS.primary }} />
+                <div className="text-left">
+                  <div className="font-semibold">Planner Views</div>
+                  <div className="text-xs text-slate-500">Board & Grid ⭐</div>
+                </div>
+              </div>
+              <Badge className="absolute top-1 right-1 text-xs bg-green-500">NEW</Badge>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-20 justify-start relative group"
+              onClick={() => setActiveView('finance-planner')}
+            >
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 mt-1" style={{ color: COLORS.info }} />
+                <div className="text-left">
+                  <div className="font-semibold">Finance Planner</div>
+                  <div className="text-xs text-slate-500">BIR, Month-end, HR ⭐</div>
+                </div>
+              </div>
+              <Badge className="absolute top-1 right-1 text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white">✨ NEW</Badge>
             </Button>
 
             <Button
@@ -1384,6 +1416,44 @@ export default function FinancePPMApp() {
             />
           )}
         </main>
+      </div>
+    );
+  }
+
+  // Microsoft Planner Views (Board & Grid)
+  if (activeView === 'planner') {
+    return (
+      <div className="h-screen">
+        <div className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 z-10 p-4">
+          <button 
+            onClick={() => setActiveView('dashboard')} 
+            className="text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <div className="pt-16 h-full">
+          <PlannerView />
+        </div>
+      </div>
+    );
+  }
+
+  // Finance Planner View (BIR, Month-end, HR workflows)
+  if (activeView === 'finance-planner') {
+    return (
+      <div className="h-screen">
+        <div className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 z-10 p-4">
+          <button 
+            onClick={() => setActiveView('dashboard')} 
+            className="text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <div className="pt-16 h-full">
+          <FinancePlannerView />
+        </div>
       </div>
     );
   }

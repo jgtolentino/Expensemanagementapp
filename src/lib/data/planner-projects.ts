@@ -1,34 +1,26 @@
-// lib/data/planner-projects.ts
-// Microsoft Planner-style Projects with Buckets, Tasks, and Checklists
-// WITH DATA SOURCE METADATA (Production vs Mock)
+// /lib/data/planner-projects.ts
 
-import { DataMeta } from './ppm-data-model';
-
-// Metadata for this data source
-const IMPORT_TIMESTAMP = new Date().toISOString().split('T')[0]; // Today's date
-const SOURCE_FILENAME = 'ppm-oca.xlsx';
-
-export const PLANNER_DATA_META: DataMeta = {
-  source: 'production', // This is REAL CSV data
-  filename: SOURCE_FILENAME,
-  lastUpdated: IMPORT_TIMESTAMP,
-  importedBy: 'System'
-};
+import { DataSourceType } from './types';
 
 export interface PlannerChecklistItem {
+  id: string;
   content: string;
   is_checked: boolean;
 }
 
 export interface PlannerTask {
+  id: string;
   title: string;
   due_date: string;
   start_date: string;
   labels: string[];
   assigned_to: string[];
   checklist: PlannerChecklistItem[];
-  description?: string;
-  priority?: 'low' | 'medium' | 'high' | 'critical';
+  meta: {
+    source: DataSourceType;
+    lastUpdated: string;
+    filename: string;
+  };
 }
 
 export interface PlannerBucket {
@@ -37,288 +29,176 @@ export interface PlannerBucket {
 }
 
 export interface PlannerProject {
+  plan_id: string;
   plan_title: string;
   buckets: PlannerBucket[];
 }
 
-// Tax Filing Project
-export const taxFilingProject: PlannerProject = {
-  plan_title: "Tax Filing Project",
-  buckets: [
-    {
-      bucket_name: "Preparation",
-      tasks: [
-        {
-          title: "Gather Documents",
-          due_date: "2/28/2026",
-          start_date: "1/15/2026",
-          labels: ["Tax", "Documentation"],
-          assigned_to: ["Accountant"],
-          checklist: [
-            {
-              content: "Collect W-2 forms from all employees",
-              is_checked: false
-            },
-            {
-              content: "Gather 1099 forms from contractors",
-              is_checked: false
-            },
-            {
-              content: "Compile receipts for business expenses",
-              is_checked: false
-            },
-            {
-              content: "Review bank statements",
-              is_checked: false
-            },
-            {
-              content: "Submit for approval",
-              is_checked: false
-            }
-          ],
-          description: "Comprehensive document gathering for tax preparation",
-          priority: "high"
-        }
-      ]
-    },
-    {
-      bucket_name: "Review",
-      tasks: [
-        {
-          title: "Review Draft",
-          due_date: "3/20/2026",
-          start_date: "3/10/2026",
-          labels: ["Tax", "Review"],
-          assigned_to: ["Senior Accountant"],
-          checklist: [
-            {
-              content: "Review income statements",
-              is_checked: false
-            },
-            {
-              content: "Verify deductions and credits",
-              is_checked: false
-            },
-            {
-              content: "Check for calculation errors",
-              is_checked: false
-            },
-            {
-              content: "Review details",
-              is_checked: false
-            },
-            {
-              content: "Submit for approval",
-              is_checked: false
-            }
-          ],
-          description: "Comprehensive review of tax draft before filing",
-          priority: "critical"
-        }
-      ]
-    },
-    {
-      bucket_name: "Filing",
-      tasks: [
-        {
-          title: "File Taxes",
-          due_date: "4/15/2026",
-          start_date: "4/1/2026",
-          labels: ["Tax", "Filing", "Deadline"],
-          assigned_to: ["Tax Specialist"],
-          checklist: [
-            {
-              content: "E-file federal returns",
-              is_checked: false
-            },
-            {
-              content: "E-file state returns",
-              is_checked: false
-            },
-            {
-              content: "Review confirmation receipts",
-              is_checked: false
-            },
-            {
-              content: "Archive filed documents",
-              is_checked: false
-            },
-            {
-              content: "Submit for approval",
-              is_checked: false
-            }
-          ],
-          description: "Final tax filing and submission",
-          priority: "critical"
-        }
-      ]
-    }
-  ]
+const META_PROD: { source: DataSourceType; lastUpdated: string; filename: string } = {
+  source: 'production',
+  lastUpdated: new Date().toISOString().split('T')[0],
+  filename: 'ppm-oca.xlsx'
 };
 
-// Closing Task Project (placeholder - will be added when you provide the data)
-export const closingTaskProject: PlannerProject = {
-  plan_title: "Month-End Closing Task",
-  buckets: [
-    {
-      bucket_name: "Preparation",
-      tasks: [
-        {
-          title: "Prepare Closing Checklist",
-          due_date: "2025-12-28",
-          start_date: "2025-12-26",
-          labels: ["Closing", "Checklist"],
-          assigned_to: ["Finance Manager"],
-          checklist: [
-            {
-              content: "Review previous month close",
-              is_checked: false
-            },
-            {
-              content: "Update checklist template",
-              is_checked: false
-            },
-            {
-              content: "Distribute to team",
-              is_checked: false
-            }
-          ],
-          priority: "high"
-        }
-      ]
-    },
-    {
-      bucket_name: "Execution",
-      tasks: [
-        {
-          title: "Execute Month-End Close",
-          due_date: "2025-12-31",
-          start_date: "2025-12-29",
-          labels: ["Closing", "Critical"],
-          assigned_to: ["Accounting Team"],
-          checklist: [
-            {
-              content: "Process all transactions",
-              is_checked: false
-            },
-            {
-              content: "Run financial reports",
-              is_checked: false
-            },
-            {
-              content: "Reconcile accounts",
-              is_checked: false
-            }
-          ],
-          priority: "critical"
-        }
-      ]
-    },
-    {
-      bucket_name: "Review & Approval",
-      tasks: [
-        {
-          title: "Final Review and Sign-Off",
-          due_date: "2026-01-05",
-          start_date: "2026-01-02",
-          labels: ["Review", "Approval"],
-          assigned_to: ["CFO"],
-          checklist: [
-            {
-              content: "Review financial statements",
-              is_checked: false
-            },
-            {
-              content: "Approve close",
-              is_checked: false
-            },
-            {
-              content: "Archive documentation",
-              is_checked: false
-            }
-          ],
-          priority: "high"
-        }
-      ]
-    }
-  ]
+export const PLANNER_RAW_DATA: PlannerProject[] = [
+  {
+    plan_id: "tax_filing_2026",
+    plan_title: "Tax Filing Project 2026",
+    buckets: [
+      {
+        bucket_name: "Preparation",
+        tasks: [
+          {
+            id: "TAX-001",
+            title: "Gather Documents",
+            due_date: "2026-02-28",
+            start_date: "2026-01-15",
+            labels: ["Finance", "Critical"],
+            assigned_to: ["Accountant"],
+            meta: META_PROD,
+            checklist: [
+               { id: "chk_t1_1", content: "Collect P&L statements", is_checked: false },
+               { id: "chk_t1_2", content: "Review expense reports", is_checked: false },
+               { id: "chk_t1_3", content: "Gather vendor invoices", is_checked: false },
+               { id: "chk_t1_4", content: "Verify payroll records", is_checked: false },
+               { id: "chk_t1_5", content: "Confirm fixed asset registry", is_checked: false }
+            ]
+          }
+        ]
+      },
+      {
+        bucket_name: "Review",
+        tasks: [
+           {
+            id: "TAX-002",
+            title: "Review Draft",
+            due_date: "2026-03-20",
+            start_date: "2026-03-10",
+            labels: ["Finance", "Review"],
+            assigned_to: ["Senior Accountant"],
+            meta: META_PROD,
+            checklist: [
+               { id: "chk_t2_1", content: "Check vs General Ledger", is_checked: false },
+               { id: "chk_t2_2", content: "Approve deductions", is_checked: false },
+               { id: "chk_t2_3", content: "Manager sign-off", is_checked: false },
+               { id: "chk_t2_4", content: "Legal review", is_checked: false },
+               { id: "chk_t2_5", content: "Finalize adjustments", is_checked: false }
+            ]
+           }
+        ]
+      },
+      {
+        bucket_name: "Filing",
+        tasks: [
+           {
+            id: "TAX-003",
+            title: "File Taxes",
+            due_date: "2026-04-15",
+            start_date: "2026-04-01",
+            labels: ["Compliance", "Critical"],
+            assigned_to: ["Tax Specialist"],
+            meta: META_PROD,
+            checklist: [
+               { id: "chk_t3_1", content: "Submit federal return", is_checked: false },
+               { id: "chk_t3_2", content: "Submit state return", is_checked: false },
+               { id: "chk_t3_3", content: "Pay tax liability", is_checked: false },
+               { id: "chk_t3_4", content: "Archive confirmation receipt", is_checked: false },
+               { id: "chk_t3_5", content: "Notify stakeholders", is_checked: false }
+            ]
+           }
+        ]
+      }
+    ]
+  },
+  {
+    plan_id: "month_close_dec",
+    plan_title: "Month-End Closing Tasks",
+    buckets: [
+      {
+        bucket_name: "Preparation",
+        tasks: [
+          {
+            id: "CLOSE-001",
+            title: "Prepare Checklist",
+            due_date: "2025-12-28",
+            start_date: "2025-12-26",
+            labels: ["Accounting"],
+            assigned_to: ["Controller"],
+            meta: META_PROD,
+            checklist: [
+               { id: "chk_c1_1", content: "Update closing schedule", is_checked: true },
+               { id: "chk_c1_2", content: "Notify department heads", is_checked: false },
+               { id: "chk_c1_3", content: "Clear suspense accounts", is_checked: false }
+            ]
+          }
+        ]
+      },
+      {
+        bucket_name: "Execution",
+        tasks: [
+          {
+            id: "CLOSE-002",
+            title: "Execute Close",
+            due_date: "2026-01-03",
+            start_date: "2026-01-01",
+            labels: ["Accounting", "High Priority"],
+            assigned_to: ["Finance Team"],
+            meta: META_PROD,
+            checklist: [
+               { id: "chk_c2_1", content: "Reconcile bank accounts", is_checked: false },
+               { id: "chk_c2_2", content: "Post accruals", is_checked: false },
+               { id: "chk_c2_3", content: "Run depreciation", is_checked: false }
+            ]
+          }
+        ]
+      },
+      {
+        bucket_name: "Review & Approval",
+        tasks: [
+          {
+            id: "CLOSE-003",
+            title: "Final Review",
+            due_date: "2026-01-05",
+            start_date: "2026-01-04",
+            labels: ["Management"],
+            assigned_to: ["CFO"],
+            meta: META_PROD,
+            checklist: [
+               { id: "chk_c3_1", content: "Review Variance Analysis", is_checked: false },
+               { id: "chk_c3_2", content: "Sign off on financial statements", is_checked: false },
+               { id: "chk_c3_3", content: "Distribute board pack", is_checked: false }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+];
+
+// Legacy exports for backwards compatibility
+export const taxFilingProject = PLANNER_RAW_DATA[0];
+export const closingTaskProject = PLANNER_RAW_DATA[1];
+export const allPlannerProjects = PLANNER_RAW_DATA;
+
+// Export tasks arrays for tasks-enhanced.ts compatibility
+export const taxFilingTasks = PLANNER_RAW_DATA[0].buckets.flatMap(bucket => 
+  bucket.tasks.map(task => ({
+    ...task,
+    bucket: bucket.bucket_name
+  }))
+);
+
+export const closingTasks = PLANNER_RAW_DATA[1].buckets.flatMap(bucket => 
+  bucket.tasks.map(task => ({
+    ...task,
+    bucket: bucket.bucket_name
+  }))
+);
+
+// Metadata export
+export const PLANNER_DATA_META = {
+  source: 'production' as DataSourceType,
+  filename: META_PROD.filename,
+  lastUpdated: META_PROD.lastUpdated,
+  importedBy: 'System'
 };
-
-// Helper function to convert Planner format to TaskEnhanced format
-export function convertPlannerToTaskEnhanced(
-  plannerProject: PlannerProject,
-  projectCode: string
-): any[] {
-  const tasks: any[] = [];
-  let taskCounter = 1;
-  let checklistCounter = 1;
-
-  plannerProject.buckets.forEach((bucket, bucketIndex) => {
-    bucket.tasks.forEach((task, taskIndex) => {
-      const taskId = `${projectCode}-${String(taskCounter).padStart(3, '0')}`;
-      
-      // Convert checklist to subtasks with checklist items
-      const subtasks = task.checklist.map((item, index) => ({
-        id: `SUB-${taskId}-${String(index + 1).padStart(2, '0')}`,
-        name: item.content,
-        status: item.is_checked ? 'completed' : 'not_started',
-        assignee: task.assigned_to[0] || 'Unassigned',
-        dueDate: task.due_date,
-        progress: item.is_checked ? 100 : 0,
-        checklist: [{
-          id: `CHK-${checklistCounter++}`,
-          text: item.content,
-          completed: item.is_checked,
-          completedBy: item.is_checked ? task.assigned_to[0] : undefined,
-        }],
-        estimatedHours: 1,
-        actualHours: item.is_checked ? 1 : 0,
-        priority: task.priority || 'medium',
-      }));
-
-      tasks.push({
-        id: taskId,
-        code: taskId,
-        name: task.title,
-        description: task.description || '',
-        type: 'task',
-        status: task.checklist.every(c => c.is_checked) ? 'completed' : 
-                task.checklist.some(c => c.is_checked) ? 'in_progress' : 'not_started',
-        priority: task.priority || 'medium',
-        startDate: task.start_date,
-        endDate: task.due_date,
-        progress: Math.round((task.checklist.filter(c => c.is_checked).length / task.checklist.length) * 100),
-        duration: Math.ceil((new Date(task.due_date).getTime() - new Date(task.start_date).getTime()) / (1000 * 60 * 60 * 24)),
-        owner: task.assigned_to[0] || 'Unassigned',
-        assignee: task.assigned_to[0] || 'Unassigned',
-        raci: {
-          responsible: task.assigned_to,
-          accountable: [task.assigned_to[0] || 'Unassigned'],
-          consulted: [],
-          informed: [],
-        },
-        budgetHours: task.checklist.length,
-        actualHours: task.checklist.filter(c => c.is_checked).length,
-        remainingHours: task.checklist.filter(c => !c.is_checked).length,
-        dependencies: [],
-        subtasks: subtasks,
-        comments: [],
-        tags: [...task.labels, bucket.bucket_name],
-        createdBy: 'System',
-        createdAt: new Date().toISOString(),
-        bucket: bucket.bucket_name, // Add bucket for grouping
-      });
-
-      taskCounter++;
-    });
-  });
-
-  return tasks;
-}
-
-// Export converted tasks
-export const taxFilingTasks = convertPlannerToTaskEnhanced(taxFilingProject, 'TAX');
-export const closingTasks = convertPlannerToTaskEnhanced(closingTaskProject, 'CLOSE');
-
-// Combined planner projects
-export const allPlannerProjects = [taxFilingProject, closingTaskProject];

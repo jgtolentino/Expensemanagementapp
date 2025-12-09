@@ -215,43 +215,12 @@ Portfolio (Financial Systems Modernization)
 
 ---
 
-## 🎨 UI Components
+## 🎨 Visual Design
 
-### Dashboard Sections
-
-1. **Header Card**
-   - Portfolio name and description
-   - Owner and phase information
-   - RAG status badge (colored)
-   - System compatibility badge
-
-2. **KPI Cards Row (4 cards)**
-   - Health Score with trend arrow
-   - Total Budget with spend
-   - Active Projects count
-   - Risk Exposure summary
-
-3. **Financial Overview (2 cards)**
-   - OPEX/CAPEX breakdown with progress bars
-   - Budget variance analysis table
-
-4. **Projects List**
-   - Expandable project cards
-   - Progress bars per project
-   - Budget, health, manager info
-   - Status badges
-
-5. **Risk Register**
-   - Risk cards with exposure levels
-   - Color-coded by severity
-   - Mitigation plans (collapsible)
-   - Owner and deadline tracking
-
-6. **Active Features**
-   - Organized by category
-   - Icon-based design
-   - Feature descriptions
-   - Odoo module mapping
+The dashboard follows the **TBWA Enterprise 365 / Microsoft Fluent Design System** with:
+- ✅ Card-based layouts
+- ✅ Consistent color coding
+- ✅ Lucide React icons
 
 ---
 
@@ -375,20 +344,6 @@ const { score, level } = calculateRiskExposure("High", "High");
 
 ---
 
-## 🎨 Visual Design
-
-The dashboard follows the **Deakin Enterprise 365 / Microsoft Fluent Design System** with:
-- ✅ Card-based layouts
-- ✅ Consistent color coding
-- ✅ Lucide React icons
-- ✅ Responsive grid system
-- ✅ Tailwind CSS styling
-- ✅ Hover effects and transitions
-- ✅ Badge and status indicators
-- ✅ Progress bars and charts
-
----
-
 ## 📊 Statistics
 
 ### Code Metrics
@@ -429,7 +384,7 @@ Team Members:           Integrated with existing
 🔜 **n8n Workflows** - Process automation  
 🔜 **DigitalOcean Droplets** - Infrastructure  
 🔜 **Odoo 18 CE** - ERP system  
-🔜 **OCA Modules** - Community extensions  
+ futuro **OCA Modules** - Community extensions  
 
 ---
 

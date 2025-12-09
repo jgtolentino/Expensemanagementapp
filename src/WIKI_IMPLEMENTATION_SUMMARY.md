@@ -261,7 +261,7 @@ All routes return JSON with `{ success, data, meta }` structure.
 
 ### **With TBWA Databank**
 - Unified launcher - Wiki card matches other apps
-- Consistent design system - Fluent Design / Deakin 365
+- Consistent design system - Fluent Design / TBWA 365
 - Shared auth context - Same login flow
 - Uniform navigation - "← All Apps" button
 

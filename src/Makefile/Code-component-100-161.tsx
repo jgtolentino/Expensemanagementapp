@@ -277,7 +277,7 @@ info: ## Show project information
 	@echo ""
 	@echo "Framework:    Vite + React + TypeScript"
 	@echo "Database:     Supabase (PostgreSQL)"
-	@echo "Design:       Microsoft Fluent + Deakin Enterprise 365"
+	@echo "Design:       Microsoft Fluent + TBWA Enterprise 365"
 	@echo "Apps:         8 (Rate Card, T&E, Gear, PPM, Procure, Creative, Wiki, BI)"
 	@echo ""
 	@echo "Supabase URL: $(SUPABASE_URL)"

@@ -1,0 +1,1000 @@
+# =============================================
+# Core SaaS Spine - Schema Definition
+# =============================================
+# Module: ipai_core_saas
+# Owner: Core Platform Team
+# Description: Multi-tenant SaaS backbone for all ipai ERP modules
+
+version: "1.0.0"
+schema_namespace: "core"
+module: "ipai_core_saas"
+
+# =============================================
+# Schema: core.tenant
+# =============================================
+# The root entity for multi-tenancy
+# Maps to res.company in Odoo
+
+tables:
+  tenant:
+    description: "Root tenant entity (organization, agency, company)"
+    primary_key: id
+    indexes:
+      - columns: [slug]
+        unique: true
+      - columns: [status]
+      - columns: [created_at]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        description: "Unique tenant identifier"
+        
+      slug:
+        type: varchar(64)
+        nullable: false
+        unique: true
+        description: "URL-safe tenant slug (e.g., 'tbwa', 'omc')"
+        
+      name:
+        type: varchar(255)
+        nullable: false
+        description: "Full legal name"
+        
+      display_name:
+        type: varchar(128)
+        nullable: false
+        description: "Display name for UI"
+        
+      domain:
+        type: varchar(255)
+        nullable: true
+        description: "Custom domain (e.g., 'tbwa.ipai.app')"
+        
+      logo_url:
+        type: text
+        nullable: true
+        description: "Tenant logo (Supabase Storage path)"
+        
+      # Classification
+      tenant_type:
+        type: varchar(32)
+        nullable: false
+        default: "'enterprise'"
+        description: "Type: enterprise, agency, startup, freelancer"
+        enum:
+          - enterprise
+          - agency
+          - startup
+          - freelancer
+          
+      industry:
+        type: varchar(64)
+        nullable: true
+        description: "Industry vertical"
+        
+      # Status & Lifecycle
+      status:
+        type: varchar(32)
+        nullable: false
+        default: "'active'"
+        description: "Lifecycle status"
+        enum:
+          - trial
+          - active
+          - suspended
+          - cancelled
+          - churned
+          
+      trial_ends_at:
+        type: timestamptz
+        nullable: true
+        description: "Trial expiration date"
+        
+      # Subscription
+      plan_id:
+        type: uuid
+        nullable: true
+        references: core.plan(id)
+        description: "Current subscription plan"
+        
+      mrr:
+        type: numeric(12,2)
+        nullable: true
+        description: "Monthly Recurring Revenue"
+        
+      # Settings
+      settings:
+        type: jsonb
+        default: '{}'
+        description: "Tenant-level settings (timezone, locale, etc.)"
+        
+      feature_flags:
+        type: jsonb
+        default: '{}'
+        description: "Feature flags override"
+        
+      # Localization
+      country_code:
+        type: varchar(2)
+        default: "'PH'"
+        description: "ISO country code"
+        
+      currency_code:
+        type: varchar(3)
+        default: "'PHP'"
+        description: "Default currency"
+        
+      timezone:
+        type: varchar(64)
+        default: "'Asia/Manila'"
+        description: "Default timezone"
+        
+      locale:
+        type: varchar(10)
+        default: "'en_US'"
+        description: "Default locale"
+        
+      # Odoo Integration
+      odoo_company_id:
+        type: integer
+        nullable: true
+        description: "Linked Odoo res.company ID"
+        
+      odoo_database:
+        type: varchar(128)
+        nullable: true
+        description: "Odoo database name (if using separate DBs)"
+        
+      # Metadata
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      created_by:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+    constraints:
+      - type: check
+        name: slug_format
+        condition: "slug ~ '^[a-z0-9-]+$'"
+
+# =============================================
+# Schema: core.workspace
+# =============================================
+# Sub-organization units within a tenant
+
+  workspace:
+    description: "Workspace (division, department, team) within a tenant"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [tenant_id, slug]
+        unique: true
+      - columns: [status]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        description: "Parent tenant"
+        
+      slug:
+        type: varchar(64)
+        nullable: false
+        description: "Workspace slug (unique within tenant)"
+        
+      name:
+        type: varchar(255)
+        nullable: false
+        description: "Workspace name"
+        
+      description:
+        type: text
+        nullable: true
+        
+      # Hierarchy
+      parent_workspace_id:
+        type: uuid
+        nullable: true
+        references: core.workspace(id)
+        on_delete: set_null
+        description: "Parent workspace (for nested workspaces)"
+        
+      # Type
+      workspace_type:
+        type: varchar(32)
+        default: "'team'"
+        description: "Type of workspace"
+        enum:
+          - division
+          - department
+          - team
+          - project
+          
+      # Status
+      status:
+        type: varchar(32)
+        default: "'active'"
+        enum:
+          - active
+          - archived
+          - deleted
+          
+      # Ownership
+      owner_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Workspace owner"
+        
+      # Settings
+      settings:
+        type: jsonb
+        default: '{}'
+        
+      # Metadata
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+    constraints:
+      - type: check
+        name: slug_format
+        condition: "slug ~ '^[a-z0-9-]+$'"
+      - type: unique
+        columns: [tenant_id, slug]
+
+# =============================================
+# Schema: core.plan
+# =============================================
+# Subscription plans (pricing tiers)
+
+  plan:
+    description: "Subscription plan definition (Free, Pro, Enterprise)"
+    primary_key: id
+    indexes:
+      - columns: [slug]
+        unique: true
+      - columns: [status]
+    rls_enabled: false
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      slug:
+        type: varchar(64)
+        nullable: false
+        unique: true
+        description: "Plan slug (e.g., 'free', 'pro', 'enterprise')"
+        
+      name:
+        type: varchar(128)
+        nullable: false
+        description: "Plan name"
+        
+      description:
+        type: text
+        nullable: true
+        
+      # Pricing
+      price_monthly:
+        type: numeric(10,2)
+        default: 0
+        description: "Monthly price (USD)"
+        
+      price_annual:
+        type: numeric(10,2)
+        default: 0
+        description: "Annual price (USD)"
+        
+      currency_code:
+        type: varchar(3)
+        default: "'USD'"
+        
+      # Limits
+      max_users:
+        type: integer
+        nullable: true
+        description: "Max users (null = unlimited)"
+        
+      max_workspaces:
+        type: integer
+        nullable: true
+        
+      max_storage_gb:
+        type: integer
+        nullable: true
+        
+      max_api_calls_per_month:
+        type: integer
+        nullable: true
+        
+      # Features (JSONB array of feature codes)
+      features:
+        type: jsonb
+        default: '[]'
+        description: "Array of enabled feature codes"
+        
+      # Status
+      status:
+        type: varchar(32)
+        default: "'active'"
+        enum:
+          - active
+          - deprecated
+          - hidden
+          
+      is_public:
+        type: boolean
+        default: true
+        description: "Show on pricing page"
+        
+      sort_order:
+        type: integer
+        default: 0
+        
+      # Metadata
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# Schema: core.subscription
+# =============================================
+# Tenant subscription instances
+
+  subscription:
+    description: "Tenant subscription to a plan"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [plan_id]
+      - columns: [status]
+      - columns: [current_period_end]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        
+      plan_id:
+        type: uuid
+        nullable: false
+        references: core.plan(id)
+        
+      # Billing
+      billing_interval:
+        type: varchar(16)
+        default: "'monthly'"
+        enum:
+          - monthly
+          - annual
+          
+      amount:
+        type: numeric(10,2)
+        nullable: false
+        description: "Amount charged per interval"
+        
+      currency_code:
+        type: varchar(3)
+        default: "'USD'"
+        
+      # Status
+      status:
+        type: varchar(32)
+        default: "'active'"
+        enum:
+          - trialing
+          - active
+          - past_due
+          - canceled
+          - unpaid
+          
+      # Period
+      current_period_start:
+        type: timestamptz
+        nullable: false
+        
+      current_period_end:
+        type: timestamptz
+        nullable: false
+        
+      trial_start:
+        type: timestamptz
+        nullable: true
+        
+      trial_end:
+        type: timestamptz
+        nullable: true
+        
+      # Cancellation
+      cancel_at_period_end:
+        type: boolean
+        default: false
+        
+      canceled_at:
+        type: timestamptz
+        nullable: true
+        
+      ended_at:
+        type: timestamptz
+        nullable: true
+        
+      # Payment integration (Stripe, Paddle, etc.)
+      payment_provider:
+        type: varchar(32)
+        nullable: true
+        description: "stripe, paddle, manual"
+        
+      payment_provider_subscription_id:
+        type: varchar(255)
+        nullable: true
+        description: "External subscription ID"
+        
+      payment_provider_customer_id:
+        type: varchar(255)
+        nullable: true
+        
+      # Metadata
+      metadata:
+        type: jsonb
+        default: '{}'
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# Schema: core.user_profile
+# =============================================
+# Extended user profile (supplements Supabase auth.users)
+
+  user_profile:
+    description: "User profile (extends Supabase auth.users)"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [email]
+        unique: true
+      - columns: [employee_code]
+      - columns: [status]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        nullable: false
+        references: auth.users(id)
+        on_delete: cascade
+        description: "Same as Supabase auth.users.id"
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        
+      # Identity
+      employee_code:
+        type: varchar(16)
+        nullable: true
+        description: "Employee code (e.g., CKVC, RIM, BOM)"
+        
+      full_name:
+        type: varchar(255)
+        nullable: false
+        
+      email:
+        type: varchar(255)
+        nullable: false
+        unique: true
+        
+      phone:
+        type: varchar(32)
+        nullable: true
+        
+      avatar_url:
+        type: text
+        nullable: true
+        
+      # Position & Department
+      position:
+        type: varchar(128)
+        nullable: true
+        description: "Job title"
+        
+      department:
+        type: varchar(128)
+        nullable: true
+        
+      team_id:
+        type: uuid
+        nullable: true
+        references: core.team(id)
+        description: "Primary team"
+        
+      manager_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Direct manager"
+        
+      # Role (application-level, not auth)
+      role:
+        type: varchar(32)
+        default: "'user'"
+        description: "Application role"
+        enum:
+          - admin
+          - finance_director
+          - finance_manager
+          - supervisor
+          - user
+          - viewer
+          
+      # Status
+      status:
+        type: varchar(32)
+        default: "'active'"
+        enum:
+          - active
+          - inactive
+          - suspended
+          
+      # Odoo Integration
+      odoo_partner_id:
+        type: integer
+        nullable: true
+        description: "Linked Odoo res.partner ID"
+        
+      odoo_user_id:
+        type: integer
+        nullable: true
+        description: "Linked Odoo res.users ID"
+        
+      odoo_employee_id:
+        type: integer
+        nullable: true
+        description: "Linked Odoo hr.employee ID"
+        
+      # Preferences
+      preferences:
+        type: jsonb
+        default: '{}'
+        description: "User preferences (theme, notifications, etc.)"
+        
+      timezone:
+        type: varchar(64)
+        nullable: true
+        
+      locale:
+        type: varchar(10)
+        nullable: true
+        
+      # Metadata
+      last_login_at:
+        type: timestamptz
+        nullable: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# Schema: core.team
+# =============================================
+# Teams within a workspace/tenant
+
+  team:
+    description: "Team (cross-functional group within workspace)"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [workspace_id]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        
+      workspace_id:
+        type: uuid
+        nullable: true
+        references: core.workspace(id)
+        on_delete: set_null
+        
+      name:
+        type: varchar(255)
+        nullable: false
+        
+      description:
+        type: text
+        nullable: true
+        
+      lead_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Team lead"
+        
+      status:
+        type: varchar(32)
+        default: "'active'"
+        enum:
+          - active
+          - archived
+          
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# Schema: core.department
+# =============================================
+# Organizational departments
+
+  department:
+    description: "Department (org unit within tenant)"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [tenant_id, code]
+        unique: true
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        
+      code:
+        type: varchar(32)
+        nullable: false
+        description: "Dept code (e.g., FIN, TAX, TRY)"
+        
+      name:
+        type: varchar(128)
+        nullable: false
+        
+      parent_department_id:
+        type: uuid
+        nullable: true
+        references: core.department(id)
+        on_delete: set_null
+        
+      head_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Department head"
+        
+      odoo_department_id:
+        type: integer
+        nullable: true
+        description: "Linked Odoo hr.department ID"
+        
+      status:
+        type: varchar(32)
+        default: "'active'"
+        enum:
+          - active
+          - archived
+          
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+    constraints:
+      - type: unique
+        columns: [tenant_id, code]
+
+# =============================================
+# Schema: core.feature_flag
+# =============================================
+# Feature flags for gradual rollout
+
+  feature_flag:
+    description: "Feature flag definition (global or tenant-specific)"
+    primary_key: id
+    indexes:
+      - columns: [code]
+        unique: true
+      - columns: [status]
+    rls_enabled: false
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      code:
+        type: varchar(64)
+        nullable: false
+        unique: true
+        description: "Feature flag code (e.g., 'finance_planner_v2')"
+        
+      name:
+        type: varchar(128)
+        nullable: false
+        
+      description:
+        type: text
+        nullable: true
+        
+      # Rollout
+      enabled_globally:
+        type: boolean
+        default: false
+        description: "Enabled for all tenants"
+        
+      enabled_for_tenant_ids:
+        type: uuid[]
+        default: '{}'
+        description: "Array of tenant IDs with feature enabled"
+        
+      enabled_for_plan_ids:
+        type: uuid[]
+        default: '{}'
+        description: "Array of plan IDs with feature enabled"
+        
+      rollout_percentage:
+        type: integer
+        default: 0
+        description: "Percentage of tenants (0-100)"
+        
+      # Status
+      status:
+        type: varchar(32)
+        default: "'beta'"
+        enum:
+          - development
+          - beta
+          - general_availability
+          - deprecated
+          
+      # Metadata
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# RLS Policies
+# =============================================
+rls_policies:
+  tenant:
+    - name: tenant_isolation
+      using: "id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  workspace:
+    - name: workspace_tenant_isolation
+      using: "tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  subscription:
+    - name: subscription_tenant_isolation
+      using: "tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  user_profile:
+    - name: user_profile_self_and_tenant
+      using: "id = auth.uid() OR tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  team:
+    - name: team_tenant_isolation
+      using: "tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  department:
+    - name: department_tenant_isolation
+      using: "tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+
+# =============================================
+# Helper Functions
+# =============================================
+functions:
+  get_user_tenant_id:
+    description: "Get current user's tenant ID"
+    returns: uuid
+    language: sql
+    security: definer
+    body: |
+      SELECT tenant_id FROM core.user_profile WHERE id = auth.uid()
+      
+  check_feature_enabled:
+    description: "Check if feature flag is enabled for tenant"
+    parameters:
+      - name: p_feature_code
+        type: varchar
+      - name: p_tenant_id
+        type: uuid
+    returns: boolean
+    language: plpgsql
+    body: |
+      DECLARE
+        v_flag RECORD;
+        v_plan_id UUID;
+      BEGIN
+        SELECT * INTO v_flag FROM core.feature_flag WHERE code = p_feature_code;
+        
+        IF NOT FOUND THEN
+          RETURN FALSE;
+        END IF;
+        
+        -- Check global enable
+        IF v_flag.enabled_globally THEN
+          RETURN TRUE;
+        END IF;
+        
+        -- Check tenant-specific
+        IF p_tenant_id = ANY(v_flag.enabled_for_tenant_ids) THEN
+          RETURN TRUE;
+        END IF;
+        
+        -- Check plan-specific
+        SELECT plan_id INTO v_plan_id FROM core.tenant WHERE id = p_tenant_id;
+        IF v_plan_id = ANY(v_flag.enabled_for_plan_ids) THEN
+          RETURN TRUE;
+        END IF;
+        
+        RETURN FALSE;
+      END;
+
+# =============================================
+# Triggers
+# =============================================
+triggers:
+  updated_at_trigger:
+    tables:
+      - tenant
+      - workspace
+      - plan
+      - subscription
+      - user_profile
+      - team
+      - department
+      - feature_flag
+    function: |
+      CREATE OR REPLACE FUNCTION core.update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    event: BEFORE UPDATE
+
+# =============================================
+# Odoo Model Mapping
+# =============================================
+odoo_mapping:
+  core.tenant:
+    odoo_model: res.company
+    sync_direction: bidirectional
+    fields:
+      id: id (UUID stored as char field)
+      name: name
+      display_name: display_name (computed)
+      currency_code: currency_id.name
+      country_code: country_id.code
+      
+  core.user_profile:
+    odoo_model: res.users
+    sync_direction: bidirectional
+    fields:
+      id: id (UUID)
+      email: login
+      full_name: name
+      tenant_id: company_id (via core.tenant mapping)
+      odoo_partner_id: partner_id.id
+      odoo_employee_id: employee_id.id
+      
+  core.department:
+    odoo_model: hr.department
+    sync_direction: bidirectional
+    fields:
+      id: id (UUID)
+      code: code (custom field)
+      name: name
+      head_user_id: manager_id (via user_profile mapping)
+
+# =============================================
+# Migration Versioning
+# =============================================
+migrations:
+  - version: "001"
+    description: "Initial core schema creation"
+    script: "migrations/core/001_initial.sql"
+    
+  - version: "002"
+    description: "Add feature flags table"
+    script: "migrations/core/002_feature_flags.sql"
+    
+  - version: "003"
+    description: "Add RLS policies"
+    script: "migrations/core/003_rls_policies.sql"

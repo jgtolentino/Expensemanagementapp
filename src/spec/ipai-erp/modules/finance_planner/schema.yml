@@ -1,0 +1,1761 @@
+# =============================================
+# Finance Planner Module - Schema Definition
+# =============================================
+# Module: ipai_finance_planner
+# Owner: Finance Platform Team
+# Description: Microsoft Planner-inspired task management for BIR compliance, month-end closing, onboarding/offboarding
+
+version: "1.0.0"
+schema_namespace: "finance_compliance"
+module: "ipai_finance_planner"
+depends_on:
+  - ipai_core_saas
+  - account (Odoo CE)
+
+# =============================================
+# Core Planner Entities
+# =============================================
+
+tables:
+  # ==========================================
+  # fin_plan: Top-level plan (container)
+  # ==========================================
+  fin_plan:
+    description: "Top-level plan: BIR Calendar, Month-End Closing, Onboarding, etc."
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [plan_type]
+      - columns: [status]
+      - columns: [created_at]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        description: "Owner tenant"
+        
+      # Plan identity
+      title:
+        type: varchar(255)
+        nullable: false
+        description: "Plan title (e.g., 'BIR Calendar 2026')"
+        
+      description:
+        type: text
+        nullable: true
+        
+      plan_type:
+        type: varchar(32)
+        nullable: false
+        description: "Type of plan"
+        enum:
+          - bir_calendar
+          - month_end_closing
+          - onboarding
+          - offboarding
+          - ppm
+          - custom
+          
+      # Ownership
+      owner_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Plan owner (coordinator)"
+        
+      # Status
+      status:
+        type: varchar(32)
+        default: "'active'"
+        enum:
+          - active
+          - archived
+          - template
+          
+      # Visibility
+      is_pinned:
+        type: boolean
+        default: false
+        description: "Pinned to home dashboard"
+        
+      is_favorite:
+        type: boolean
+        default: false
+        
+      # Template
+      is_template:
+        type: boolean
+        default: false
+        description: "Is this a template plan"
+        
+      template_category:
+        type: varchar(64)
+        nullable: true
+        description: "Category if template"
+        
+      # Metadata
+      color:
+        type: varchar(7)
+        nullable: true
+        description: "Plan color (hex)"
+        
+      icon:
+        type: varchar(32)
+        nullable: true
+        description: "Icon identifier"
+        
+      settings:
+        type: jsonb
+        default: '{}'
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      created_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+
+  # ==========================================
+  # fin_bucket: Grouping within a plan
+  # ==========================================
+  fin_bucket:
+    description: "Bucket (group) within a plan (e.g., 'To Do', 'In Progress', 'Done')"
+    primary_key: id
+    indexes:
+      - columns: [plan_id]
+      - columns: [sort_order]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      plan_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.fin_plan(id)
+        on_delete: cascade
+        
+      name:
+        type: varchar(128)
+        nullable: false
+        description: "Bucket name"
+        
+      sort_order:
+        type: integer
+        default: 0
+        
+      color:
+        type: varchar(7)
+        nullable: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+  # ==========================================
+  # fin_task: Task within a bucket
+  # ==========================================
+  fin_task:
+    description: "Task within a bucket (main work item)"
+    primary_key: id
+    indexes:
+      - columns: [plan_id]
+      - columns: [bucket_id]
+      - columns: [assigned_to_user_id]
+      - columns: [status]
+      - columns: [due_date]
+      - columns: [priority]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      plan_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.fin_plan(id)
+        on_delete: cascade
+        
+      bucket_id:
+        type: uuid
+        nullable: true
+        references: finance_compliance.fin_bucket(id)
+        on_delete: set_null
+        description: "Current bucket"
+        
+      # Task details
+      title:
+        type: varchar(255)
+        nullable: false
+        
+      description:
+        type: text
+        nullable: true
+        
+      # Assignment
+      assigned_to_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Assigned user"
+        
+      reviewer_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      approver_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      # Scheduling
+      start_date:
+        type: date
+        nullable: true
+        
+      due_date:
+        type: date
+        nullable: true
+        
+      # Status & Progress
+      status:
+        type: varchar(32)
+        default: "'not_started'"
+        enum:
+          - not_started
+          - in_progress
+          - under_review
+          - approved
+          - completed
+          - blocked
+          - late
+          
+      progress_percent:
+        type: integer
+        default: 0
+        description: "0-100"
+        
+      priority:
+        type: varchar(16)
+        default: "'normal'"
+        enum:
+          - low
+          - normal
+          - high
+          - urgent
+          
+      # Checklist progress (computed)
+      checklist_total:
+        type: integer
+        default: 0
+        
+      checklist_completed:
+        type: integer
+        default: 0
+        
+      # Labels/Tags
+      labels:
+        type: text[]
+        default: '{}'
+        
+      # Attachments count (computed)
+      attachment_count:
+        type: integer
+        default: 0
+        
+      # Dependencies
+      depends_on_task_ids:
+        type: uuid[]
+        default: '{}'
+        description: "Task IDs this task depends on"
+        
+      # Completion
+      started_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      # Notes
+      notes:
+        type: text
+        nullable: true
+        
+      # Odoo Integration
+      odoo_task_id:
+        type: integer
+        nullable: true
+        description: "Linked Odoo project.task ID"
+        
+      odoo_activity_id:
+        type: integer
+        nullable: true
+        description: "Linked Odoo mail.activity ID"
+        
+      # Metadata
+      sort_order:
+        type: integer
+        default: 0
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      created_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+
+  # ==========================================
+  # fin_checklist_item: Checklist within a task
+  # ==========================================
+  fin_checklist_item:
+    description: "Checklist item within a task"
+    primary_key: id
+    indexes:
+      - columns: [task_id]
+      - columns: [sort_order]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      task_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.fin_task(id)
+        on_delete: cascade
+        
+      label:
+        type: text
+        nullable: false
+        
+      is_done:
+        type: boolean
+        default: false
+        
+      is_required:
+        type: boolean
+        default: true
+        
+      category:
+        type: varchar(64)
+        nullable: true
+        description: "Category (e.g., 'data_gathering', 'validation')"
+        
+      sort_order:
+        type: integer
+        default: 0
+        
+      completed_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      notes:
+        type: text
+        nullable: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# BIR Compliance Domain
+# =============================================
+
+  # ==========================================
+  # bir_form: BIR form types (master data)
+  # ==========================================
+  bir_form:
+    description: "BIR form type master data (1601-C, 2550Q, etc.)"
+    primary_key: id
+    indexes:
+      - columns: [code]
+        unique: true
+      - columns: [form_type]
+      - columns: [frequency]
+    rls_enabled: false
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      code:
+        type: varchar(32)
+        nullable: false
+        unique: true
+        description: "BIR form code (e.g., '1601C', '2550Q')"
+        
+      name:
+        type: varchar(255)
+        nullable: false
+        
+      description:
+        type: text
+        nullable: true
+        
+      form_type:
+        type: varchar(32)
+        nullable: false
+        description: "Tax type"
+        enum:
+          - withholding
+          - vat
+          - income_tax
+          - documentary_stamp
+          - other
+          
+      frequency:
+        type: varchar(16)
+        nullable: false
+        enum:
+          - monthly
+          - quarterly
+          - annual
+          
+      filing_method:
+        type: varchar(32)
+        nullable: true
+        description: "Filing method"
+        enum:
+          - ebir
+          - efps
+          - online_portal
+          - otc
+          
+      requires_alphalist:
+        type: boolean
+        default: false
+        
+      requires_schedules:
+        type: boolean
+        default: false
+        
+      penalty_rate_per_day:
+        type: numeric(5,4)
+        nullable: true
+        description: "Daily penalty rate (e.g., 0.0025 for 0.25%)"
+        
+      penalty_max_percent:
+        type: numeric(5,2)
+        nullable: true
+        description: "Max penalty (e.g., 25)"
+        
+      bir_url:
+        type: text
+        nullable: true
+        
+      instructions_url:
+        type: text
+        nullable: true
+        
+      template_url:
+        type: text
+        nullable: true
+        description: "Link to working file template"
+        
+      sort_order:
+        type: integer
+        default: 0
+        
+      active:
+        type: boolean
+        default: true
+        
+      metadata:
+        type: jsonb
+        default: '{}'
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+  # ==========================================
+  # bir_filing: BIR filing instance
+  # ==========================================
+  bir_filing:
+    description: "BIR filing instance (e.g., 1601-C for Dec 2025)"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [bir_form_id]
+      - columns: [period_start_date]
+      - columns: [bir_deadline_date]
+      - columns: [status]
+      - columns: [workflow_stage]
+      - columns: [responsible_user_id]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        
+      bir_form_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.bir_form(id)
+        
+      # Period covered
+      period_type:
+        type: varchar(16)
+        nullable: false
+        enum:
+          - monthly
+          - quarterly
+          - annual
+          
+      period_year:
+        type: integer
+        nullable: false
+        
+      period_month:
+        type: integer
+        nullable: true
+        description: "1-12 for monthly"
+        
+      period_quarter:
+        type: integer
+        nullable: true
+        description: "1-4 for quarterly"
+        
+      period_start_date:
+        type: date
+        nullable: false
+        
+      period_end_date:
+        type: date
+        nullable: false
+        
+      # Deadlines
+      bir_deadline_date:
+        type: date
+        nullable: false
+        description: "Official BIR deadline"
+        
+      bir_deadline_adjusted:
+        type: date
+        nullable: true
+        description: "Adjusted for weekends/holidays"
+        
+      # Internal workflow deadlines
+      prep_start_date:
+        type: date
+        nullable: false
+        
+      prep_due_date:
+        type: date
+        nullable: false
+        
+      sfm_review_due_date:
+        type: date
+        nullable: false
+        
+      fd_approval_due_date:
+        type: date
+        nullable: false
+        
+      filing_target_date:
+        type: date
+        nullable: false
+        
+      # Status tracking
+      status:
+        type: varchar(32)
+        default: "'draft'"
+        enum:
+          - draft
+          - in_preparation
+          - under_review
+          - approved
+          - filed
+          - paid
+          - late
+          - cancelled
+          
+      workflow_stage:
+        type: varchar(32)
+        default: "'preparation'"
+        enum:
+          - preparation
+          - sfm_review
+          - fd_approval
+          - filing
+          - payment
+          - completed
+          
+      # Assignment (RACI)
+      responsible_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Responsible (usually Finance Supervisor)"
+        
+      reviewer_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Reviewer (SFM)"
+        
+      approver_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        description: "Approver (Finance Director)"
+        
+      informed_user_ids:
+        type: uuid[]
+        default: '{}'
+        
+      # Financial data
+      tax_base_amount:
+        type: numeric(18,2)
+        nullable: true
+        
+      tax_due_amount:
+        type: numeric(18,2)
+        nullable: true
+        
+      penalty_amount:
+        type: numeric(18,2)
+        default: 0
+        
+      interest_amount:
+        type: numeric(18,2)
+        default: 0
+        
+      total_amount_due:
+        type: numeric(18,2)
+        nullable: true
+        
+      amount_paid:
+        type: numeric(18,2)
+        nullable: true
+        
+      # Filing proof
+      filed_at:
+        type: timestamptz
+        nullable: true
+        
+      filed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      bir_confirmation_number:
+        type: varchar(128)
+        nullable: true
+        
+      bir_receipt_number:
+        type: varchar(128)
+        nullable: true
+        
+      # Payment proof
+      paid_at:
+        type: timestamptz
+        nullable: true
+        
+      payment_method:
+        type: varchar(32)
+        nullable: true
+        enum:
+          - online_banking
+          - check
+          - otc
+          - gcash
+          - other
+          
+      payment_reference:
+        type: varchar(128)
+        nullable: true
+        
+      bank_name:
+        type: varchar(128)
+        nullable: true
+        
+      check_number:
+        type: varchar(64)
+        nullable: true
+        
+      # Document attachments (Supabase Storage paths)
+      working_file_url:
+        type: text
+        nullable: true
+        
+      bir_form_pdf_url:
+        type: text
+        nullable: true
+        
+      alphalist_url:
+        type: text
+        nullable: true
+        
+      schedules_url:
+        type: text
+        nullable: true
+        
+      payment_voucher_url:
+        type: text
+        nullable: true
+        
+      bir_receipt_url:
+        type: text
+        nullable: true
+        
+      bank_proof_url:
+        type: text
+        nullable: true
+        
+      # Integration
+      odoo_task_id:
+        type: integer
+        nullable: true
+        
+      odoo_account_move_id:
+        type: integer
+        nullable: true
+        description: "Linked journal entry"
+        
+      odoo_payment_id:
+        type: integer
+        nullable: true
+        
+      # Notes
+      notes:
+        type: text
+        nullable: true
+        
+      late_reason:
+        type: text
+        nullable: true
+        
+      created_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+    constraints:
+      - type: unique
+        columns: [tenant_id, bir_form_id, period_start_date]
+
+  # ==========================================
+  # bir_task: Task for a BIR filing
+  # ==========================================
+  bir_task:
+    description: "Task for a BIR filing (Prep, SFM Review, FD Approval, Filing)"
+    primary_key: id
+    indexes:
+      - columns: [filing_id]
+      - columns: [assigned_to_user_id]
+      - columns: [task_type]
+      - columns: [status]
+      - columns: [due_date]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      filing_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.bir_filing(id)
+        on_delete: cascade
+        
+      sequence:
+        type: integer
+        nullable: false
+        description: "Task sequence (1=Prep, 2=SFM, 3=FD, 4=Filing)"
+        
+      task_type:
+        type: varchar(32)
+        nullable: false
+        enum:
+          - preparation
+          - sfm_review
+          - fd_approval
+          - filing_payment
+          
+      name:
+        type: varchar(255)
+        nullable: false
+        
+      description:
+        type: text
+        nullable: true
+        
+      assigned_to_user_id:
+        type: uuid
+        nullable: false
+        references: core.user_profile(id)
+        
+      reviewer_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      due_date:
+        type: date
+        nullable: false
+        
+      estimated_hours:
+        type: numeric(4,1)
+        nullable: true
+        
+      status:
+        type: varchar(32)
+        default: "'pending'"
+        enum:
+          - pending
+          - in_progress
+          - under_review
+          - approved
+          - rejected
+          - completed
+          - late
+          
+      priority:
+        type: varchar(16)
+        default: "'normal'"
+        enum:
+          - low
+          - normal
+          - high
+          - urgent
+          
+      started_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      reviewed_at:
+        type: timestamptz
+        nullable: true
+        
+      reviewed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      review_notes:
+        type: text
+        nullable: true
+        
+      approved_at:
+        type: timestamptz
+        nullable: true
+        
+      approved_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      approval_notes:
+        type: text
+        nullable: true
+        
+      odoo_task_id:
+        type: integer
+        nullable: true
+        
+      odoo_activity_id:
+        type: integer
+        nullable: true
+        
+      n8n_execution_id:
+        type: varchar(64)
+        nullable: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+  # ==========================================
+  # bir_task_checklist: Checklist for BIR task
+  # ==========================================
+  bir_task_checklist:
+    description: "Checklist item for a BIR task"
+    primary_key: id
+    indexes:
+      - columns: [task_id]
+      - columns: [sort_order]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      task_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.bir_task(id)
+        on_delete: cascade
+        
+      sequence:
+        type: integer
+        nullable: false
+        
+      label:
+        type: text
+        nullable: false
+        
+      category:
+        type: varchar(64)
+        nullable: true
+        enum:
+          - data_gathering
+          - computation
+          - form_filling
+          - validation
+          - documentation
+          
+      is_required:
+        type: boolean
+        default: true
+        
+      is_done:
+        type: boolean
+        default: false
+        
+      completed_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      notes:
+        type: text
+        nullable: true
+        
+      sort_order:
+        type: integer
+        default: 0
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+  # ==========================================
+  # bir_checklist_template: Reusable checklists
+  # ==========================================
+  bir_checklist_template:
+    description: "Reusable checklist template for BIR form types"
+    primary_key: id
+    indexes:
+      - columns: [bir_form_id]
+      - columns: [task_type]
+    rls_enabled: false
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      bir_form_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.bir_form(id)
+        on_delete: cascade
+        
+      task_type:
+        type: varchar(32)
+        nullable: false
+        enum:
+          - preparation
+          - sfm_review
+          - fd_approval
+          - filing_payment
+          
+      sequence:
+        type: integer
+        nullable: false
+        
+      label:
+        type: text
+        nullable: false
+        
+      category:
+        type: varchar(64)
+        nullable: true
+        
+      is_required:
+        type: boolean
+        default: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# Month-End Closing Domain
+# =============================================
+
+  # ==========================================
+  # month_end_task_template: Templates for tasks
+  # ==========================================
+  month_end_task_template:
+    description: "Month-end closing task template"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [wbs_code]
+        unique: true
+      - columns: [active]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        
+      wbs_code:
+        type: varchar(32)
+        nullable: false
+        unique: true
+        description: "WBS code (e.g., IM1.1, IM2.1)"
+        
+      task_category:
+        type: varchar(128)
+        nullable: false
+        
+      task_name:
+        type: varchar(255)
+        nullable: false
+        
+      detailed_description:
+        type: text
+        nullable: false
+        
+      default_responsible_code:
+        type: varchar(16)
+        nullable: true
+        description: "Employee code (e.g., RIM, BOM)"
+        
+      default_reviewer_code:
+        type: varchar(16)
+        nullable: true
+        
+      default_approver_code:
+        type: varchar(16)
+        nullable: true
+        
+      frequency:
+        type: varchar(32)
+        default: "'monthly'"
+        enum:
+          - monthly
+          - quarterly
+          - annual
+          
+      timing_reference:
+        type: varchar(32)
+        default: "'working_day'"
+        enum:
+          - working_day
+          - calendar_day
+          
+      preparation_days:
+        type: numeric(4,1)
+        nullable: false
+        description: "Working days from period end"
+        
+      review_days:
+        type: numeric(4,1)
+        nullable: true
+        
+      approval_days:
+        type: numeric(4,1)
+        nullable: true
+        
+      sla_description:
+        type: varchar(255)
+        nullable: true
+        
+      related_bir_form_ids:
+        type: uuid[]
+        default: '{}'
+        description: "Related BIR forms"
+        
+      depends_on_template_ids:
+        type: uuid[]
+        default: '{}'
+        
+      blocking_for_template_ids:
+        type: uuid[]
+        default: '{}'
+        
+      account_codes:
+        type: text[]
+        default: '{}'
+        
+      odoo_project_id:
+        type: integer
+        nullable: true
+        
+      odoo_project_template_id:
+        type: integer
+        nullable: true
+        
+      color_code:
+        type: varchar(7)
+        nullable: true
+        
+      department:
+        type: varchar(64)
+        nullable: true
+        
+      cost_center:
+        type: varchar(32)
+        nullable: true
+        
+      priority:
+        type: integer
+        default: 5
+        
+      estimated_hours:
+        type: numeric(4,1)
+        nullable: true
+        
+      active:
+        type: boolean
+        default: true
+        
+      sort_order:
+        type: integer
+        default: 0
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+  # ==========================================
+  # month_end_period: Closing period instance
+  # ==========================================
+  month_end_period:
+    description: "Month/quarter/year-end closing period"
+    primary_key: id
+    indexes:
+      - columns: [tenant_id]
+      - columns: [tenant_id, closing_year, closing_month]
+        unique: true
+      - columns: [status]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      tenant_id:
+        type: uuid
+        nullable: false
+        references: core.tenant(id)
+        on_delete: cascade
+        
+      closing_year:
+        type: integer
+        nullable: false
+        
+      closing_month:
+        type: integer
+        nullable: false
+        
+      period_name:
+        type: varchar(64)
+        nullable: true
+        description: "e.g., 'December 2025 Close'"
+        
+      period_start_date:
+        type: date
+        nullable: false
+        
+      period_end_date:
+        type: date
+        nullable: false
+        
+      close_start_date:
+        type: date
+        nullable: false
+        
+      close_target_date:
+        type: date
+        nullable: false
+        
+      status:
+        type: varchar(32)
+        default: "'planned'"
+        enum:
+          - planned
+          - in_progress
+          - review
+          - completed
+          - late
+          
+      progress_percent:
+        type: integer
+        default: 0
+        
+      gl_freeze_at:
+        type: timestamptz
+        nullable: true
+        
+      tb_finalized_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_at:
+        type: timestamptz
+        nullable: true
+        
+      coordinator_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      odoo_fiscal_period_id:
+        type: integer
+        nullable: true
+        
+      odoo_project_id:
+        type: integer
+        nullable: true
+        
+      notes:
+        type: text
+        nullable: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+    constraints:
+      - type: unique
+        columns: [tenant_id, closing_year, closing_month]
+
+  # ==========================================
+  # month_end_task: Task instance for period
+  # ==========================================
+  month_end_task:
+    description: "Month-end task instance (generated from template)"
+    primary_key: id
+    indexes:
+      - columns: [period_id]
+      - columns: [template_id]
+      - columns: [responsible_user_id]
+      - columns: [status]
+      - columns: [due_date]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      period_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.month_end_period(id)
+        on_delete: cascade
+        
+      template_id:
+        type: uuid
+        nullable: true
+        references: finance_compliance.month_end_task_template(id)
+        
+      wbs_code:
+        type: varchar(32)
+        nullable: false
+        
+      task_name:
+        type: varchar(255)
+        nullable: false
+        
+      description:
+        type: text
+        nullable: true
+        
+      responsible_user_id:
+        type: uuid
+        nullable: false
+        references: core.user_profile(id)
+        
+      reviewer_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      approver_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      informed_user_ids:
+        type: uuid[]
+        default: '{}'
+        
+      due_date:
+        type: date
+        nullable: false
+        
+      estimated_hours:
+        type: numeric(4,1)
+        nullable: true
+        
+      status:
+        type: varchar(32)
+        default: "'pending'"
+        enum:
+          - pending
+          - in_progress
+          - under_review
+          - approved
+          - completed
+          - blocked
+          - late
+          
+      priority:
+        type: varchar(16)
+        default: "'normal'"
+        enum:
+          - low
+          - normal
+          - high
+          - urgent
+          
+      started_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      reviewed_at:
+        type: timestamptz
+        nullable: true
+        
+      reviewed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      review_notes:
+        type: text
+        nullable: true
+        
+      approved_at:
+        type: timestamptz
+        nullable: true
+        
+      approved_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      approval_notes:
+        type: text
+        nullable: true
+        
+      depends_on_task_ids:
+        type: uuid[]
+        default: '{}'
+        
+      blocked_by_task_ids:
+        type: uuid[]
+        default: '{}'
+        
+      attachment_urls:
+        type: text[]
+        default: '{}'
+        
+      odoo_task_id:
+        type: integer
+        nullable: true
+        
+      odoo_account_move_ids:
+        type: integer[]
+        default: '{}'
+        
+      color_code:
+        type: varchar(7)
+        nullable: true
+        
+      tags:
+        type: text[]
+        default: '{}'
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+        
+      updated_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+  # ==========================================
+  # month_end_checklist: Checklist for ME task
+  # ==========================================
+  month_end_checklist:
+    description: "Checklist item for month-end task"
+    primary_key: id
+    indexes:
+      - columns: [task_id]
+    rls_enabled: true
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      task_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.month_end_task(id)
+        on_delete: cascade
+        
+      sequence:
+        type: integer
+        nullable: false
+        
+      label:
+        type: text
+        nullable: false
+        
+      category:
+        type: varchar(64)
+        nullable: true
+        
+      is_required:
+        type: boolean
+        default: true
+        
+      is_done:
+        type: boolean
+        default: false
+        
+      completed_at:
+        type: timestamptz
+        nullable: true
+        
+      completed_by_user_id:
+        type: uuid
+        nullable: true
+        references: core.user_profile(id)
+        
+      notes:
+        type: text
+        nullable: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+  # ==========================================
+  # month_end_checklist_template
+  # ==========================================
+  month_end_checklist_template:
+    description: "Checklist template for month-end task templates"
+    primary_key: id
+    indexes:
+      - columns: [template_id]
+    rls_enabled: false
+    
+    columns:
+      id:
+        type: uuid
+        default: gen_random_uuid()
+        nullable: false
+        
+      template_id:
+        type: uuid
+        nullable: false
+        references: finance_compliance.month_end_task_template(id)
+        on_delete: cascade
+        
+      sequence:
+        type: integer
+        nullable: false
+        
+      label:
+        type: text
+        nullable: false
+        
+      category:
+        type: varchar(64)
+        nullable: true
+        
+      is_required:
+        type: boolean
+        default: true
+        
+      created_at:
+        type: timestamptz
+        default: now()
+        nullable: false
+
+# =============================================
+# RLS Policies
+# =============================================
+rls_policies:
+  fin_plan:
+    - name: plan_tenant_isolation
+      using: "tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  bir_filing:
+    - name: filing_tenant_isolation
+      using: "tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  bir_task:
+    - name: task_via_filing
+      using: "filing_id IN (SELECT id FROM finance_compliance.bir_filing WHERE tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid()))"
+      
+  month_end_period:
+    - name: period_tenant_isolation
+      using: "tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid())"
+      
+  month_end_task:
+    - name: task_via_period
+      using: "period_id IN (SELECT id FROM finance_compliance.month_end_period WHERE tenant_id IN (SELECT tenant_id FROM core.user_profile WHERE id = auth.uid()))"
+
+# =============================================
+# Odoo Model Mapping
+# =============================================
+odoo_mapping:
+  finance_compliance.fin_task:
+    odoo_model: project.task
+    sync_direction: bidirectional
+    fields:
+      id: x_fin_task_uuid (custom char field)
+      title: name
+      description: description
+      assigned_to_user_id: user_id (via core.user_profile mapping)
+      due_date: date_deadline
+      status: stage_id (mapped)
+      
+  finance_compliance.bir_filing:
+    odoo_model: project.task
+    sync_direction: bidirectional
+    fields:
+      id: x_bir_filing_uuid
+      bir_form_id: x_bir_form_code (custom)
+      period_start_date: x_period_start
+      bir_deadline_date: date_deadline
+      
+  finance_compliance.bir_task:
+    odoo_model: mail.activity
+    sync_direction: one_way
+    fields:
+      id: x_bir_task_uuid
+      name: summary
+      due_date: date_deadline
+      assigned_to_user_id: user_id
+
+# =============================================
+# Views & Reports
+# =============================================
+views:
+  v_bir_compliance_dashboard:
+    description: "BIR compliance dashboard"
+    sql: |
+      SELECT
+        bf.id AS filing_id,
+        bf.tenant_id,
+        bform.code AS bir_form_code,
+        bform.name AS bir_form_name,
+        bf.period_start_date,
+        bf.period_end_date,
+        bf.bir_deadline_date,
+        bf.status,
+        bf.workflow_stage,
+        bf.total_amount_due,
+        bf.amount_paid,
+        bf.bir_deadline_date - CURRENT_DATE AS days_until_deadline,
+        resp.full_name AS responsible_name,
+        resp.email AS responsible_email,
+        rev.full_name AS reviewer_name,
+        app.full_name AS approver_name,
+        (SELECT COUNT(*) FROM finance_compliance.bir_task WHERE filing_id = bf.id) AS total_tasks,
+        (SELECT COUNT(*) FROM finance_compliance.bir_task WHERE filing_id = bf.id AND status = 'completed') AS completed_tasks,
+        CASE
+          WHEN bf.bir_deadline_date < CURRENT_DATE AND bf.status != 'filed' THEN 'overdue'
+          WHEN bf.bir_deadline_date - CURRENT_DATE <= 3 AND bf.status != 'filed' THEN 'urgent'
+          WHEN bf.bir_deadline_date - CURRENT_DATE <= 7 THEN 'due_soon'
+          ELSE 'on_track'
+        END AS urgency_status
+      FROM finance_compliance.bir_filing bf
+      JOIN finance_compliance.bir_form bform ON bform.id = bf.bir_form_id
+      LEFT JOIN core.user_profile resp ON resp.id = bf.responsible_user_id
+      LEFT JOIN core.user_profile rev ON rev.id = bf.reviewer_user_id
+      LEFT JOIN core.user_profile app ON app.id = bf.approver_user_id
+      WHERE bf.status NOT IN ('cancelled');
+      
+  v_month_end_progress:
+    description: "Month-end closing progress"
+    sql: |
+      SELECT
+        p.id AS period_id,
+        p.tenant_id,
+        p.period_name,
+        p.closing_year,
+        p.closing_month,
+        p.close_target_date,
+        p.status AS period_status,
+        COUNT(t.id) AS total_tasks,
+        SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) AS completed_tasks,
+        SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_tasks,
+        SUM(CASE WHEN t.status = 'blocked' THEN 1 ELSE 0 END) AS blocked_tasks,
+        SUM(CASE WHEN t.due_date < CURRENT_DATE AND t.status != 'completed' THEN 1 ELSE 0 END) AS overdue_tasks,
+        ROUND(100.0 * SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) / NULLIF(COUNT(t.id), 0), 1) AS completion_percent
+      FROM finance_compliance.month_end_period p
+      LEFT JOIN finance_compliance.month_end_task t ON t.period_id = p.id
+      GROUP BY p.id;
+
+# =============================================
+# Migrations
+# =============================================
+migrations:
+  - version: "001"
+    description: "Initial finance_planner schema"
+    script: "migrations/finance_planner/001_initial.sql"
+    
+  - version: "002"
+    description: "Add BIR compliance tables"
+    script: "migrations/finance_planner/002_bir_compliance.sql"
+    
+  - version: "003"
+    description: "Add month-end closing tables"
+    script: "migrations/finance_planner/003_month_end.sql"
+    
+  - version: "004"
+    description: "Add RLS policies"
+    script: "migrations/finance_planner/004_rls.sql"
+    
+  - version: "005"
+    description: "Add views and reports"
+    script: "migrations/finance_planner/005_views.sql"

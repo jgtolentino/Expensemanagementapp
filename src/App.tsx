@@ -5,6 +5,7 @@ import RateCardProApp from './RateCardProApp';
 import TEApp from './TEApp';
 import GearApp from './GearApp';
 import FinancePPMApp from './FinancePPMApp';
+import FinancePlannerApp from './FinancePlannerApp';
 import ProcureApp from './ProcureApp';
 import CreativeWorkroomApp from './CreativeWorkroomApp';
 import WikiDocsApp from './WikiDocsAppNew';
@@ -13,7 +14,7 @@ import LoginScreen from './components/LoginScreen';
 import UserMenu from './components/UserMenu';
 import { AuthProvider, useAuth } from './lib/auth-context';
 
-type AppSelection = 'launcher' | 'ratecard' | 'te' | 'gear' | 'financeppm' | 'procure' | 'creative' | 'wiki' | 'bi';
+type AppSelection = 'launcher' | 'ratecard' | 'te' | 'gear' | 'financeppm' | 'financeplanner' | 'procure' | 'creative' | 'wiki' | 'bi';
 
 function AppContent() {
   const [selectedApp, setSelectedApp] = useState<AppSelection>('launcher');
@@ -104,6 +105,24 @@ function AppContent() {
           <UserMenu />
         </div>
         <FinancePPMApp />
+      </div>
+    );
+  }
+
+  if (selectedApp === 'financeplanner') {
+    return (
+      <div>
+        <Button
+          className="fixed top-4 left-4 z-20 bg-white"
+          variant="outline"
+          onClick={() => setSelectedApp('launcher')}
+        >
+          ← All Apps
+        </Button>
+        <div className="fixed top-4 right-4 z-20">
+          <UserMenu />
+        </div>
+        <FinancePlannerApp />
       </div>
     );
   }
@@ -297,6 +316,33 @@ function AppContent() {
                 <li>✓ Risk tracking & dashboards</li>
               </ul>
               <Button className="w-full mt-4" style={{ backgroundColor: '#D97706' }}>
+                Launch App →
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Finance Planner */}
+          <Card
+            className="cursor-pointer hover:shadow-xl transition-all hover:scale-105 border-2 hover:border-[#FF9900]"
+            onClick={() => setSelectedApp('financeplanner')}
+          >
+            <CardHeader>
+              <div className="w-12 h-12 rounded-lg mb-4 flex items-center justify-center text-2xl" style={{ backgroundColor: '#FF9900', color: 'white' }}>
+                📅
+              </div>
+              <CardTitle className="text-2xl" style={{ color: '#FF9900' }}>
+                Finance Planner
+              </CardTitle>
+              <CardDescription>Microsoft Planner-style workflow management</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>✓ BIR tax filing workflows</li>
+                <li>✓ Month-end closing tasks</li>
+                <li>✓ HR onboarding/offboarding</li>
+                <li>✓ Board/Schedule/Grid/Charts views</li>
+              </ul>
+              <Button className="w-full mt-4" style={{ backgroundColor: '#FF9900' }}>
                 Launch App →
               </Button>
             </CardContent>
