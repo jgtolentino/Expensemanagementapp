@@ -3,704 +3,1137 @@ import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Badge } from './components/ui/badge';
-import { ExpenseReportForm, ExpenseReport } from './components/te/ExpenseReportForm';
-import { CashAdvanceForm, CashAdvance } from './components/te/CashAdvanceForm';
-import { TEAnalyticsDashboard } from './components/te/TEAnalyticsDashboard';
+import { Input } from './components/ui/input';
+import { Label } from './components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
+import { Textarea } from './components/ui/textarea';
+import { Progress } from './components/ui/progress';
+import AppFeatures from './components/AppFeatures';
+import {
+  Plane, CreditCard, Receipt, DollarSign, TrendingUp, FileText, Camera,
+  Plus, Calendar, MapPin, Users, CheckCircle2, XCircle, Clock,
+  AlertTriangle, Download, Upload, Filter, Search, MoreVertical,
+  Car, Utensils, Hotel, ShoppingBag, Phone, Fuel, Train, ChevronRight
+} from 'lucide-react';
 
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: 'employee' | 'manager' | 'finance';
-  department: string;
+const COLORS = {
+  primary: '#0070F2',
+  success: '#10B981',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  info: '#0EA5E9',
 };
 
+type ExpenseCategory = 
+  | 'Airfare' | 'Accommodation' | 'Meals' | 'Transportation' | 'Car Rental'
+  | 'Fuel' | 'Parking' | 'Entertainment' | 'Office Supplies' | 'Communication'
+  | 'Per Diem' | 'Mileage' | 'Other';
+
+interface ExpenseLine {
+  id: string;
+  date: string;
+  category: ExpenseCategory;
+  merchant: string;
+  amount: number;
+  currency: string;
+  description: string;
+  receipt?: boolean;
+  policyCompliant: boolean;
+  mileage?: number;
+  fromLocation?: string;
+  toLocation?: string;
+}
+
+interface ExpenseReport {
+  id: string;
+  reportCode: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'paid' | 'pending_approval';
+  employeeName: string;
+  employeeId: string;
+  purpose: string;
+  periodStart: string;
+  periodEnd: string;
+  lines: ExpenseLine[];
+  totalAmount: number;
+  advanceAmount: number;
+  netReimbursable: number;
+  createdAt: Date;
+  submittedAt?: Date;
+  approvedAt?: Date;
+  approver?: string;
+  policyViolations: number;
+  comments?: string[];
+}
+
+interface CashAdvance {
+  id: string;
+  requestCode: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'disbursed' | 'settled';
+  employeeName: string;
+  employeeId: string;
+  requestedAmount: number;
+  approvedAmount: number;
+  currency: string;
+  purpose: string;
+  neededDate: string;
+  tripStart: string;
+  tripEnd: string;
+  createdAt: Date;
+  submittedAt?: Date;
+  approvedAt?: Date;
+  disbursedAt?: Date;
+  settledAmount: number;
+  outstandingAmount: number;
+  approver?: string;
+}
+
+interface MileageEntry {
+  id: string;
+  date: string;
+  from: string;
+  to: string;
+  distance: number;
+  purpose: string;
+  rate: number;
+  amount: number;
+}
+
 export default function TEApp() {
-  const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [showCashAdvanceForm, setShowCashAdvanceForm] = useState(false);
+  const [showAdvanceForm, setShowAdvanceForm] = useState(false);
   const [selectedReport, setSelectedReport] = useState<ExpenseReport | null>(null);
-  const [selectedAdvance, setSelectedAdvance] = useState<CashAdvance | null>(null);
 
-  // Mock data
-  const [expenseReports, setExpenseReports] = useState<ExpenseReport[]>([
+  // Mock Data
+  const expenseReports: ExpenseReport[] = [
     {
       id: 'EXP-001',
-      reportCode: 'EXP-2025-001',
-      employeeId: 'emp1',
-      employeeName: 'Current User',
+      reportCode: 'EXP-2024-001',
       status: 'submitted',
-      purpose: 'Q4 Client Meetings - Manila',
-      periodStart: '2025-11-01',
-      periodEnd: '2025-11-30',
+      employeeName: 'Maria Santos',
+      employeeId: 'EMP-001',
+      purpose: 'Q4 Client Meetings - Manila & Cebu',
+      periodStart: '2024-12-01',
+      periodEnd: '2024-12-15',
+      totalAmount: 45750,
+      advanceAmount: 15000,
+      netReimbursable: 30750,
+      policyViolations: 0,
+      createdAt: new Date('2024-12-15'),
+      submittedAt: new Date('2024-12-16'),
+      approver: 'Juan Manager',
       lines: [
         {
-          id: 'line1',
-          date: '2025-11-15',
-          merchant: 'Grab',
-          category: 'Transportation',
-          amount: 450,
-          currency: 'PHP',
-          description: 'Airport to office',
-        },
-        {
-          id: 'line2',
-          date: '2025-11-15',
-          merchant: 'Makati Shangri-La',
-          category: 'Accommodation',
+          id: 'L001',
+          date: '2024-12-02',
+          category: 'Airfare',
+          merchant: 'Philippine Airlines',
           amount: 8500,
           currency: 'PHP',
-          description: '2 nights',
+          description: 'MNL-CEB Round Trip',
+          receipt: true,
+          policyCompliant: true,
+        },
+        {
+          id: 'L002',
+          date: '2024-12-03',
+          category: 'Accommodation',
+          merchant: 'Marco Polo Cebu',
+          amount: 12500,
+          currency: 'PHP',
+          description: '2 nights stay',
+          receipt: true,
+          policyCompliant: true,
+        },
+        {
+          id: 'L003',
+          date: '2024-12-03',
+          category: 'Meals',
+          merchant: 'Anzani Restaurant',
+          amount: 4250,
+          currency: 'PHP',
+          description: 'Client dinner',
+          receipt: true,
+          policyCompliant: true,
+        },
+        {
+          id: 'L004',
+          date: '2024-12-04',
+          category: 'Transportation',
+          merchant: 'Grab',
+          amount: 1200,
+          currency: 'PHP',
+          description: 'Hotel to meeting venue',
+          receipt: true,
+          policyCompliant: true,
+        },
+        {
+          id: 'L005',
+          date: '2024-12-05',
+          category: 'Mileage',
+          merchant: 'Personal Vehicle',
+          amount: 850,
+          currency: 'PHP',
+          description: 'Office visits',
+          receipt: false,
+          policyCompliant: true,
+          mileage: 85,
+          fromLocation: 'BGC Office',
+          toLocation: 'Makati Client Site',
         },
       ],
-      totalAmount: 8950,
-      netReimbursable: 8950,
-      createdAt: new Date('2025-11-30'),
-      submittedAt: new Date('2025-12-01'),
     },
     {
       id: 'EXP-002',
-      reportCode: 'EXP-2025-002',
-      employeeId: 'emp1',
-      employeeName: 'Current User',
+      reportCode: 'EXP-2024-002',
       status: 'approved',
-      purpose: 'Weekly team lunch',
-      periodStart: '2025-10-01',
-      periodEnd: '2025-10-31',
+      employeeName: 'Maria Santos',
+      employeeId: 'EMP-001',
+      purpose: 'November Business Expenses',
+      periodStart: '2024-11-01',
+      periodEnd: '2024-11-30',
+      totalAmount: 8900,
+      advanceAmount: 0,
+      netReimbursable: 8900,
+      policyViolations: 1,
+      createdAt: new Date('2024-11-30'),
+      submittedAt: new Date('2024-12-01'),
+      approvedAt: new Date('2024-12-03'),
+      approver: 'Juan Manager',
+      comments: ['Parking expense exceeds policy limit by ₱200'],
       lines: [
         {
-          id: 'line3',
-          date: '2025-10-20',
-          merchant: 'Vikings Buffet',
+          id: 'L006',
+          date: '2024-11-15',
           category: 'Meals',
-          amount: 3200,
+          merchant: 'Starbucks',
+          amount: 650,
           currency: 'PHP',
-          description: 'Team building lunch',
+          description: 'Client meeting coffee',
+          receipt: true,
+          policyCompliant: true,
+        },
+        {
+          id: 'L007',
+          date: '2024-11-20',
+          category: 'Parking',
+          merchant: 'Ayala Triangle Parking',
+          amount: 700,
+          currency: 'PHP',
+          description: 'All-day parking',
+          receipt: true,
+          policyCompliant: false,
+        },
+        {
+          id: 'L008',
+          date: '2024-11-25',
+          category: 'Office Supplies',
+          merchant: 'National Bookstore',
+          amount: 2550,
+          currency: 'PHP',
+          description: 'Presentation materials',
+          receipt: true,
+          policyCompliant: true,
         },
       ],
-      totalAmount: 3200,
-      netReimbursable: 3200,
-      createdAt: new Date('2025-10-31'),
-      submittedAt: new Date('2025-11-01'),
     },
-  ]);
+    {
+      id: 'EXP-003',
+      reportCode: 'EXP-2024-003',
+      status: 'draft',
+      employeeName: 'Maria Santos',
+      employeeId: 'EMP-001',
+      purpose: 'December Local Travel',
+      periodStart: '2024-12-16',
+      periodEnd: '2024-12-31',
+      totalAmount: 3450,
+      advanceAmount: 0,
+      netReimbursable: 3450,
+      policyViolations: 0,
+      createdAt: new Date('2024-12-20'),
+      lines: [
+        {
+          id: 'L009',
+          date: '2024-12-18',
+          category: 'Transportation',
+          merchant: 'Grab',
+          amount: 850,
+          currency: 'PHP',
+          description: 'Client visit',
+          receipt: true,
+          policyCompliant: true,
+        },
+        {
+          id: 'L010',
+          date: '2024-12-19',
+          category: 'Meals',
+          merchant: 'Manila Peninsula',
+          amount: 2600,
+          currency: 'PHP',
+          description: 'Business lunch with VIP client',
+          receipt: true,
+          policyCompliant: true,
+        },
+      ],
+    },
+  ];
 
-  const [cashAdvances, setCashAdvances] = useState<CashAdvance[]>([
+  const cashAdvances: CashAdvance[] = [
     {
       id: 'CA-001',
-      requestCode: 'CA-2025-001',
-      employeeId: 'emp1',
-      employeeName: 'Current User',
+      requestCode: 'CA-2024-001',
       status: 'disbursed',
+      employeeName: 'Maria Santos',
+      employeeId: 'EMP-001',
       requestedAmount: 15000,
       approvedAmount: 15000,
       currency: 'PHP',
-      purpose: 'Cebu business trip - airfare and accommodation advance',
-      neededDate: '2025-12-15',
-      createdAt: new Date('2025-11-25'),
-      submittedAt: new Date('2025-11-25'),
-      approvedAt: new Date('2025-11-26'),
-      disbursedAt: new Date('2025-11-27'),
-      settledAmount: 0,
-      outstandingAmount: 15000,
+      purpose: 'Cebu business trip - December',
+      neededDate: '2024-12-01',
+      tripStart: '2024-12-02',
+      tripEnd: '2024-12-05',
+      createdAt: new Date('2024-11-25'),
+      submittedAt: new Date('2024-11-25'),
+      approvedAt: new Date('2024-11-26'),
+      disbursedAt: new Date('2024-11-28'),
+      settledAmount: 15000,
+      outstandingAmount: 0,
+      approver: 'Juan Manager',
     },
     {
       id: 'CA-002',
-      requestCode: 'CA-2025-002',
-      employeeId: 'emp1',
-      employeeName: 'Current User',
-      status: 'settled',
-      requestedAmount: 5000,
-      approvedAmount: 5000,
+      requestCode: 'CA-2024-002',
+      status: 'approved',
+      employeeName: 'Maria Santos',
+      employeeId: 'EMP-001',
+      requestedAmount: 25000,
+      approvedAmount: 25000,
       currency: 'PHP',
-      purpose: 'Local client visits',
-      neededDate: '2025-10-10',
-      createdAt: new Date('2025-10-05'),
-      submittedAt: new Date('2025-10-05'),
-      approvedAt: new Date('2025-10-06'),
-      disbursedAt: new Date('2025-10-07'),
-      settledAmount: 5000,
-      outstandingAmount: 0,
+      purpose: 'Singapore trade show - January 2025',
+      neededDate: '2025-01-10',
+      tripStart: '2025-01-12',
+      tripEnd: '2025-01-16',
+      createdAt: new Date('2024-12-15'),
+      submittedAt: new Date('2024-12-15'),
+      approvedAt: new Date('2024-12-18'),
+      settledAmount: 0,
+      outstandingAmount: 25000,
+      approver: 'Juan Manager',
     },
-  ]);
+  ];
 
-  const COLORS = {
-    primary: '#0070F2',
-    bg: '#F4F5F7',
-    accent: '#FF6B35',
+  const mileageEntries: MileageEntry[] = [
+    {
+      id: 'MIL-001',
+      date: '2024-12-05',
+      from: 'BGC Office',
+      to: 'Makati Client Site',
+      distance: 8.5,
+      purpose: 'Client meeting',
+      rate: 10,
+      amount: 85,
+    },
+    {
+      id: 'MIL-002',
+      date: '2024-12-10',
+      from: 'BGC Office',
+      to: 'Ortigas Center',
+      distance: 12.3,
+      purpose: 'Supplier visit',
+      rate: 10,
+      amount: 123,
+    },
+  ];
+
+  const dashboardMetrics = {
+    pendingReimbursement: 30750,
+    outstandingAdvances: 25000,
+    submittedReports: 1,
+    draftReports: 1,
+    ytdExpenses: 154350,
+    avgProcessingTime: '3.2 days',
   };
 
-  const statusColors: Record<string, string> = {
-    draft: '#6B7280',
-    submitted: '#0070F2',
-    approved: '#10B981',
-    rejected: '#EF4444',
-    paid: '#6366F1',
-    disbursed: '#F59E0B',
-    settled: '#10B981',
-  };
-
-  const handleLogin = (role: 'employee' | 'manager' | 'finance') => {
-    const users = {
-      employee: {
-        id: 'emp1',
-        name: 'Maria Santos',
-        email: 'maria.santos@company.com',
-        role: 'employee' as const,
-        department: 'Sales',
-      },
-      manager: {
-        id: 'mgr1',
-        name: 'Juan Manager',
-        email: 'juan.manager@company.com',
-        role: 'manager' as const,
-        department: 'Sales',
-      },
-      finance: {
-        id: 'fin1',
-        name: 'Finance Director',
-        email: 'finance@company.com',
-        role: 'finance' as const,
-        department: 'Finance',
-      },
+  const getStatusBadge = (status: string) => {
+    const config = {
+      draft: { label: 'Draft', color: '#6B7280' },
+      submitted: { label: 'Submitted', color: COLORS.info },
+      pending_approval: { label: 'Pending Approval', color: COLORS.warning },
+      approved: { label: 'Approved', color: COLORS.success },
+      rejected: { label: 'Rejected', color: COLORS.danger },
+      paid: { label: 'Paid', color: '#6366F1' },
+      disbursed: { label: 'Disbursed', color: COLORS.warning },
+      settled: { label: 'Settled', color: COLORS.success },
     };
-    setUser(users[role]);
+    return config[status as keyof typeof config] || config.draft;
   };
 
-  const handleSaveExpenseReport = (report: Partial<ExpenseReport>) => {
-    const newReport: ExpenseReport = {
-      id: `EXP-${String(expenseReports.length + 1).padStart(3, '0')}`,
-      reportCode: `EXP-2025-${String(expenseReports.length + 1).padStart(3, '0')}`,
-      employeeId: user?.id || 'emp1',
-      employeeName: user?.name || 'Current User',
-      status: 'draft',
-      purpose: report.purpose || '',
-      periodStart: report.periodStart || '',
-      periodEnd: report.periodEnd || '',
-      lines: report.lines || [],
-      totalAmount: report.totalAmount || 0,
-      netReimbursable: report.netReimbursable || 0,
-      createdAt: new Date(),
+  const getCategoryIcon = (category: ExpenseCategory) => {
+    const icons = {
+      Airfare: <Plane className="h-4 w-4" />,
+      Accommodation: <Hotel className="h-4 w-4" />,
+      Meals: <Utensils className="h-4 w-4" />,
+      Transportation: <Car className="h-4 w-4" />,
+      'Car Rental': <Car className="h-4 w-4" />,
+      Fuel: <Fuel className="h-4 w-4" />,
+      Parking: <MapPin className="h-4 w-4" />,
+      Entertainment: <Users className="h-4 w-4" />,
+      'Office Supplies': <ShoppingBag className="h-4 w-4" />,
+      Communication: <Phone className="h-4 w-4" />,
+      'Per Diem': <DollarSign className="h-4 w-4" />,
+      Mileage: <MapPin className="h-4 w-4" />,
+      Other: <FileText className="h-4 w-4" />,
     };
-    setExpenseReports([newReport, ...expenseReports]);
-    setShowExpenseForm(false);
-    setActiveTab('expenses');
+    return icons[category] || icons.Other;
   };
 
-  const handleSaveCashAdvance = (advance: Partial<CashAdvance>) => {
-    const newAdvance: CashAdvance = {
-      id: `CA-${String(cashAdvances.length + 1).padStart(3, '0')}`,
-      requestCode: `CA-2025-${String(cashAdvances.length + 1).padStart(3, '0')}`,
-      employeeId: user?.id || 'emp1',
-      employeeName: user?.name || 'Current User',
-      status: 'submitted',
-      requestedAmount: advance.requestedAmount || 0,
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
       currency: 'PHP',
-      purpose: advance.purpose || '',
-      neededDate: advance.neededDate || '',
-      createdAt: new Date(),
-      submittedAt: new Date(),
-    };
-    setCashAdvances([newAdvance, ...cashAdvances]);
-    setShowCashAdvanceForm(false);
-    setActiveTab('advances');
+      minimumFractionDigits: 0,
+    }).format(amount);
   };
 
-  const handleApproveReport = (reportId: string) => {
-    setExpenseReports(
-      expenseReports.map((r) => (r.id === reportId ? { ...r, status: 'approved' as const } : r))
-    );
-    setSelectedReport(null);
+  const formatDate = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
   };
-
-  const handleRejectReport = (reportId: string) => {
-    setExpenseReports(
-      expenseReports.map((r) => (r.id === reportId ? { ...r, status: 'rejected' as const } : r))
-    );
-    setSelectedReport(null);
-  };
-
-  // Login screen
-  if (!user) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4"
-        style={{ backgroundColor: COLORS.bg }}
-      >
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl" style={{ color: COLORS.primary }}>
-              Travel & Expense
-            </CardTitle>
-            <CardDescription>SAP Concur-style expense management</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-center text-muted-foreground">Demo Login:</p>
-            <div className="grid grid-cols-1 gap-3">
-              <Button onClick={() => handleLogin('employee')} style={{ backgroundColor: COLORS.primary }}>
-                Employee
-              </Button>
-              <Button onClick={() => handleLogin('manager')} variant="outline">
-                Manager
-              </Button>
-              <Button onClick={() => handleLogin('finance')} variant="outline">
-                Finance Director
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Expense report detail view
-  if (selectedReport) {
-    const canApprove = user.role === 'manager' && selectedReport.status === 'submitted';
-
-    return (
-      <div className="min-h-screen p-4" style={{ backgroundColor: COLORS.bg }}>
-        <div className="max-w-4xl mx-auto space-y-4">
-          <Button variant="outline" onClick={() => setSelectedReport(null)}>
-            ← Back
-          </Button>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>{selectedReport.purpose}</CardTitle>
-                  <CardDescription>{selectedReport.reportCode}</CardDescription>
-                </div>
-                <Badge
-                  variant="secondary"
-                  style={{
-                    backgroundColor: `${statusColors[selectedReport.status]}20`,
-                    color: statusColors[selectedReport.status],
-                  }}
-                >
-                  {selectedReport.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Employee:</span>
-                  <div>{selectedReport.employeeName}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Period:</span>
-                  <div>
-                    {selectedReport.periodStart} to {selectedReport.periodEnd}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Expense Lines</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {selectedReport.lines.map((line) => (
-                  <div key={line.id} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="font-medium">{line.merchant}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {line.category} • {line.date}
-                      </div>
-                      {line.description && (
-                        <div className="text-sm text-muted-foreground mt-1">{line.description}</div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">₱{line.amount.toLocaleString()}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="pt-6 space-y-2">
-              <div className="flex justify-between">
-                <span>Total:</span>
-                <span className="text-xl">₱{selectedReport.totalAmount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Cash Advance Applied:</span>
-                <span>₱{(selectedReport.appliedCashAdvance || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-blue-300">
-                <span>Net Reimbursable:</span>
-                <span className="text-xl" style={{ color: COLORS.primary }}>
-                  ₱{selectedReport.netReimbursable.toLocaleString()}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {canApprove && (
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => handleRejectReport(selectedReport.id)}
-                className="border-red-500 text-red-500"
-              >
-                Reject
-              </Button>
-              <Button onClick={() => handleApproveReport(selectedReport.id)} style={{ backgroundColor: '#10B981' }}>
-                Approve
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Cash advance detail view
-  if (selectedAdvance) {
-    return (
-      <div className="min-h-screen p-4" style={{ backgroundColor: COLORS.bg }}>
-        <div className="max-w-4xl mx-auto space-y-4">
-          <Button variant="outline" onClick={() => setSelectedAdvance(null)}>
-            ← Back
-          </Button>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>Cash Advance Request</CardTitle>
-                  <CardDescription>{selectedAdvance.requestCode}</CardDescription>
-                </div>
-                <Badge
-                  variant="secondary"
-                  style={{
-                    backgroundColor: `${statusColors[selectedAdvance.status]}20`,
-                    color: statusColors[selectedAdvance.status],
-                  }}
-                >
-                  {selectedAdvance.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Purpose</div>
-                <div>{selectedAdvance.purpose}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">Requested Amount</div>
-                  <div className="text-2xl" style={{ color: COLORS.primary }}>
-                    ₱{selectedAdvance.requestedAmount.toLocaleString()}
-                  </div>
-                </div>
-                {selectedAdvance.approvedAmount && (
-                  <div>
-                    <div className="text-sm text-muted-foreground">Approved Amount</div>
-                    <div className="text-2xl text-green-600">
-                      ₱{selectedAdvance.approvedAmount.toLocaleString()}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {selectedAdvance.status === 'disbursed' && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Settled</div>
-                    <div className="text-lg">₱{(selectedAdvance.settledAmount || 0).toLocaleString()}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Outstanding</div>
-                    <div className="text-lg text-orange-600">
-                      ₱{(selectedAdvance.outstandingAmount || 0).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Expense form view
-  if (showExpenseForm) {
-    return (
-      <div className="min-h-screen p-4" style={{ backgroundColor: COLORS.bg }}>
-        <div className="max-w-4xl mx-auto space-y-4">
-          <h2 className="text-2xl" style={{ color: COLORS.primary }}>
-            New Expense Report
-          </h2>
-          <ExpenseReportForm onSave={handleSaveExpenseReport} onCancel={() => setShowExpenseForm(false)} />
-        </div>
-      </div>
-    );
-  }
-
-  // Cash advance form view
-  if (showCashAdvanceForm) {
-    return (
-      <div className="min-h-screen p-4" style={{ backgroundColor: COLORS.bg }}>
-        <div className="max-w-4xl mx-auto space-y-4">
-          <h2 className="text-2xl" style={{ color: COLORS.primary }}>
-            New Cash Advance Request
-          </h2>
-          <CashAdvanceForm onSave={handleSaveCashAdvance} onCancel={() => setShowCashAdvanceForm(false)} />
-        </div>
-      </div>
-    );
-  }
-
-  // Main dashboard
-  const myReports = expenseReports.filter((r) => r.employeeId === user.id);
-  const myAdvances = cashAdvances.filter((a) => a.employeeId === user.id);
-  const outstandingAdvances = myAdvances.filter((a) => a.status === 'disbursed');
-  const totalOutstanding = outstandingAdvances.reduce((sum, a) => sum + (a.outstandingAmount || 0), 0);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: COLORS.bg }}>
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl" style={{ color: COLORS.primary }}>
-                Travel & Expense
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {user.name} • {user.department}
-              </p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setUser(null)}>
-              Logout
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
+      <main className="container mx-auto p-6 max-w-7xl">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl mb-2" style={{ color: COLORS.primary }}>
+            Travel & Expense
+          </h1>
+          <p className="text-muted-foreground">
+            SAP Concur-style expense management
+          </p>
         </div>
-      </header>
 
-      {/* Main content */}
-      <main className="container mx-auto px-4 py-6 max-w-6xl">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="expenses">Expense Reports</TabsTrigger>
             <TabsTrigger value="advances">Cash Advances</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="mileage">Mileage</TabsTrigger>
+            <TabsTrigger value="features">Features</TabsTrigger>
           </TabsList>
 
           {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="space-y-4">
-            <h2 className="text-xl" style={{ color: COLORS.primary }}>
-              Dashboard
-            </h2>
+          <TabsContent value="dashboard" className="space-y-6">
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => {
+                  setShowExpenseForm(true);
+                  setActiveTab('expenses');
+                }}
+              >
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${COLORS.primary}20`, color: COLORS.primary }}
+                    >
+                      <Receipt className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">New Expense Report</div>
+                      <div className="text-sm text-slate-500">Create & submit</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => {
+                  setShowAdvanceForm(true);
+                  setActiveTab('advances');
+                }}
+              >
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${COLORS.warning}20`, color: COLORS.warning }}
+                    >
+                      <DollarSign className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Request Cash Advance</div>
+                      <div className="text-sm text-slate-500">For upcoming trip</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${COLORS.success}20`, color: COLORS.success }}
+                    >
+                      <Camera className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">Capture Receipt</div>
+                      <div className="text-sm text-slate-500">Mobile OCR scan</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl" style={{ color: COLORS.primary }}>
-                    {myReports.length}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">Total Reports</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl" style={{ color: '#F59E0B' }}>
-                    {outstandingAdvances.length}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">Outstanding Advances</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl" style={{ color: '#EF4444' }}>
-                    ₱{totalOutstanding.toLocaleString()}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">To Settle</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button className="w-full" onClick={() => setShowExpenseForm(true)}>
-                    + New Expense Report
-                  </Button>
-                  <Button className="w-full" variant="outline" onClick={() => setShowCashAdvanceForm(true)}>
-                    + Request Cash Advance
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Recent Activity</CardTitle>
+                <CardHeader className="pb-3">
+                  <CardDescription>Pending Reimbursement</CardDescription>
+                  <CardTitle className="text-3xl">
+                    {formatCurrency(dashboardMetrics.pendingReimbursement)}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {myReports.slice(0, 3).map((report) => (
-                      <div
-                        key={report.id}
-                        className="flex justify-between items-center cursor-pointer hover:bg-gray-50 p-2 rounded"
-                        onClick={() => setSelectedReport(report)}
-                      >
-                        <div>
-                          <div className="text-sm font-medium">{report.purpose}</div>
-                          <div className="text-xs text-muted-foreground">{report.reportCode}</div>
-                        </div>
-                        <Badge
-                          variant="secondary"
-                          style={{
-                            backgroundColor: `${statusColors[report.status]}20`,
-                            color: statusColors[report.status],
-                          }}
-                        >
-                          {report.status}
-                        </Badge>
-                      </div>
-                    ))}
+                  <div className="text-sm text-slate-600">
+                    {dashboardMetrics.submittedReports} report(s) submitted
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardDescription>Outstanding Advances</CardDescription>
+                  <CardTitle className="text-3xl">
+                    {formatCurrency(dashboardMetrics.outstandingAdvances)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm" style={{ color: COLORS.warning }}>
+                    Settlement required
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardDescription>YTD Expenses</CardDescription>
+                  <CardTitle className="text-3xl">
+                    {formatCurrency(dashboardMetrics.ytdExpenses)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-slate-600">
+                    Avg processing: {dashboardMetrics.avgProcessingTime}
                   </div>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
 
-          {/* Expenses Tab */}
-          <TabsContent value="expenses" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl" style={{ color: COLORS.primary }}>
-                My Expense Reports
-              </h2>
-              <Button size="sm" onClick={() => setShowExpenseForm(true)} style={{ backgroundColor: COLORS.primary }}>
-                + New Report
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {myReports.map((report) => (
-                <Card
-                  key={report.id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedReport(report)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
+            {/* Recent Reports */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Recent Expense Reports</CardTitle>
+                    <CardDescription>Your latest submissions</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setActiveTab('expenses')}>
+                    View All
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {expenseReports.slice(0, 3).map(report => (
+                    <div
+                      key={report.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 cursor-pointer"
+                      onClick={() => {
+                        setSelectedReport(report);
+                        setActiveTab('expenses');
+                      }}
+                    >
                       <div className="flex-1">
-                        <CardTitle className="text-base">{report.purpose}</CardTitle>
-                        <CardDescription className="text-xs">
-                          {report.reportCode} • {report.periodStart} to {report.periodEnd}
-                        </CardDescription>
+                        <div className="font-medium">{report.purpose}</div>
+                        <div className="text-sm text-slate-500 mt-1">
+                          {report.reportCode} • {formatDate(report.periodStart)} - {formatDate(report.periodEnd)}
+                        </div>
+                      </div>
+                      <div className="text-right mr-4">
+                        <div className="font-medium">{formatCurrency(report.totalAmount)}</div>
+                        {report.advanceAmount > 0 && (
+                          <div className="text-sm text-slate-500">
+                            Net: {formatCurrency(report.netReimbursable)}
+                          </div>
+                        )}
                       </div>
                       <Badge
                         variant="secondary"
                         style={{
-                          backgroundColor: `${statusColors[report.status]}20`,
-                          color: statusColors[report.status],
+                          backgroundColor: `${getStatusBadge(report.status).color}20`,
+                          color: getStatusBadge(report.status).color,
                         }}
                       >
-                        {report.status}
+                        {getStatusBadge(report.status).label}
                       </Badge>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="text-xs text-muted-foreground">Total</div>
-                        <div className="text-lg" style={{ color: COLORS.primary }}>
-                          ₱{report.totalAmount.toLocaleString()}
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Outstanding Advances */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Outstanding Cash Advances</CardTitle>
+                <CardDescription>Advances requiring settlement</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {cashAdvances
+                    .filter(ca => ca.outstandingAmount > 0)
+                    .map(advance => (
+                      <div
+                        key={advance.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                        style={{ borderColor: COLORS.warning }}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">{advance.purpose}</div>
+                          <div className="text-sm text-slate-500 mt-1">
+                            {advance.requestCode} • Trip: {formatDate(advance.tripStart)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium" style={{ color: COLORS.warning }}>
+                            {formatCurrency(advance.outstandingAmount)}
+                          </div>
+                          <div className="text-sm text-slate-500">Outstanding</div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        View →
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Expense Reports Tab */}
+          <TabsContent value="expenses" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl mb-1">Expense Reports</h2>
+                <p className="text-slate-600">Manage your expense claims</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+                <Button
+                  size="sm"
+                  style={{ backgroundColor: COLORS.primary }}
+                  onClick={() => setShowExpenseForm(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Report
+                </Button>
+              </div>
+            </div>
+
+            {showExpenseForm ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Expense Report</CardTitle>
+                  <CardDescription>Submit expenses for reimbursement</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Business Purpose</Label>
+                      <Input placeholder="e.g., Client meetings in Manila" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Report Period</Label>
+                      <div className="flex gap-2">
+                        <Input type="date" />
+                        <Input type="date" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Cash Advance (if any)</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select advance to settle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No advance</SelectItem>
+                        {cashAdvances
+                          .filter(ca => ca.status === 'disbursed' && ca.outstandingAmount > 0)
+                          .map(ca => (
+                            <SelectItem key={ca.id} value={ca.id}>
+                              {ca.requestCode} - {formatCurrency(ca.outstandingAmount)}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Expense Lines</h3>
+                      <Button variant="outline" size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Expense
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Cash Advances Tab */}
-          <TabsContent value="advances" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl" style={{ color: COLORS.primary }}>
-                My Cash Advances
-              </h2>
-              <Button
-                size="sm"
-                onClick={() => setShowCashAdvanceForm(true)}
-                style={{ backgroundColor: COLORS.primary }}
-              >
-                + New Request
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {myAdvances.map((advance) => (
-                <Card
-                  key={advance.id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedAdvance(advance)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-base">{advance.purpose}</CardTitle>
-                        <CardDescription className="text-xs">{advance.requestCode}</CardDescription>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        style={{
-                          backgroundColor: `${statusColors[advance.status]}20`,
-                          color: statusColors[advance.status],
-                        }}
-                      >
-                        {advance.status}
-                      </Badge>
+                    <div className="text-sm text-slate-500 text-center py-8">
+                      No expenses added yet
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="text-xs text-muted-foreground">Amount</div>
-                        <div className="text-lg" style={{ color: COLORS.primary }}>
-                          ₱{advance.requestedAmount.toLocaleString()}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowExpenseForm(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="outline">Save as Draft</Button>
+                    <Button style={{ backgroundColor: COLORS.primary }}>
+                      Submit for Approval
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {expenseReports.map(report => (
+                  <Card
+                    key={report.id}
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => setSelectedReport(report)}
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">{report.purpose}</h3>
+                            <Badge
+                              variant="secondary"
+                              style={{
+                                backgroundColor: `${getStatusBadge(report.status).color}20`,
+                                color: getStatusBadge(report.status).color,
+                              }}
+                            >
+                              {getStatusBadge(report.status).label}
+                            </Badge>
+                            {report.policyViolations > 0 && (
+                              <Badge variant="secondary" style={{ backgroundColor: `${COLORS.warning}20`, color: COLORS.warning }}>
+                                {report.policyViolations} Policy Issue(s)
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            {report.reportCode} • {formatDate(report.periodStart)} - {formatDate(report.periodEnd)} • {report.lines.length} expense(s)
+                          </div>
+                          {report.approver && (
+                            <div className="text-sm text-slate-500 mt-1">
+                              Approver: {report.approver}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-semibold">{formatCurrency(report.totalAmount)}</div>
+                          {report.advanceAmount > 0 && (
+                            <div className="text-sm text-slate-500 mt-1">
+                              Advance: {formatCurrency(report.advanceAmount)}
+                              <br />
+                              Net: {formatCurrency(report.netReimbursable)}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      {advance.status === 'disbursed' && (
-                        <div className="text-right">
-                          <div className="text-xs text-muted-foreground">Outstanding</div>
-                          <div className="text-lg text-orange-600">
-                            ₱{(advance.outstandingAmount || 0).toLocaleString()}
+
+                      {/* Expense Lines Preview */}
+                      <div className="border-t pt-3">
+                        <div className="space-y-2">
+                          {report.lines.slice(0, 3).map(line => (
+                            <div key={line.id} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2 flex-1">
+                                <div style={{ color: COLORS.primary }}>
+                                  {getCategoryIcon(line.category)}
+                                </div>
+                                <div className="flex-1">
+                                  <span className="font-medium">{line.category}</span>
+                                  <span className="text-slate-500"> - {line.merchant}</span>
+                                </div>
+                                {line.receipt && (
+                                  <Receipt className="h-3 w-3 text-slate-400" />
+                                )}
+                                {!line.policyCompliant && (
+                                  <AlertTriangle className="h-3 w-3" style={{ color: COLORS.warning }} />
+                                )}
+                              </div>
+                              <div className="font-medium">{formatCurrency(line.amount)}</div>
+                            </div>
+                          ))}
+                          {report.lines.length > 3 && (
+                            <div className="text-sm text-slate-500 text-center pt-2">
+                              +{report.lines.length - 3} more expense(s)
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Comments */}
+                      {report.comments && report.comments.length > 0 && (
+                        <div className="border-t mt-3 pt-3">
+                          <div className="text-sm text-slate-600">
+                            <strong>Comments:</strong> {report.comments[0]}
                           </div>
                         </div>
                       )}
-                      <Button variant="ghost" size="sm">
-                        View →
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics">
-            <TEAnalyticsDashboard />
+          {/* Cash Advances Tab */}
+          <TabsContent value="advances" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl mb-1">Cash Advances</h2>
+                <p className="text-slate-600">Request and track travel advances</p>
+              </div>
+              <Button
+                size="sm"
+                style={{ backgroundColor: COLORS.primary }}
+                onClick={() => setShowAdvanceForm(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Request
+              </Button>
+            </div>
+
+            {showAdvanceForm ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Request Cash Advance</CardTitle>
+                  <CardDescription>For upcoming business travel</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Trip Purpose</Label>
+                      <Input placeholder="e.g., Singapore trade show" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Amount Needed</Label>
+                      <Input type="number" placeholder="0.00" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Needed By</Label>
+                      <Input type="date" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Trip Start</Label>
+                      <Input type="date" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Trip End</Label>
+                      <Input type="date" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Justification</Label>
+                    <Textarea placeholder="Explain why this advance is needed..." rows={3} />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowAdvanceForm(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="outline">Save as Draft</Button>
+                    <Button style={{ backgroundColor: COLORS.primary }}>
+                      Submit Request
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {cashAdvances.map(advance => (
+                  <Card key={advance.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">{advance.purpose}</h3>
+                            <Badge
+                              variant="secondary"
+                              style={{
+                                backgroundColor: `${getStatusBadge(advance.status).color}20`,
+                                color: getStatusBadge(advance.status).color,
+                              }}
+                            >
+                              {getStatusBadge(advance.status).label}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-slate-600 space-y-1">
+                            <div>{advance.requestCode}</div>
+                            <div>
+                              Trip: {formatDate(advance.tripStart)} - {formatDate(advance.tripEnd)}
+                            </div>
+                            {advance.approver && <div>Approver: {advance.approver}</div>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-semibold">
+                            {formatCurrency(advance.approvedAmount)}
+                          </div>
+                          {advance.outstandingAmount > 0 && (
+                            <div className="text-sm mt-2">
+                              <div style={{ color: COLORS.warning }}>
+                                Outstanding: {formatCurrency(advance.outstandingAmount)}
+                              </div>
+                            </div>
+                          )}
+                          {advance.settledAmount > 0 && (
+                            <div className="text-sm text-slate-500 mt-1">
+                              Settled: {formatCurrency(advance.settledAmount)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Timeline */}
+                      <div className="border-t mt-4 pt-4">
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4" style={{ color: COLORS.success }} />
+                            <div>
+                              <div className="font-medium">Submitted</div>
+                              <div className="text-slate-500">{formatDate(advance.submittedAt!)}</div>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
+                          {advance.approvedAt && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4" style={{ color: COLORS.success }} />
+                                <div>
+                                  <div className="font-medium">Approved</div>
+                                  <div className="text-slate-500">{formatDate(advance.approvedAt)}</div>
+                                </div>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-slate-400" />
+                            </>
+                          )}
+                          {advance.disbursedAt && (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4" style={{ color: COLORS.success }} />
+                              <div>
+                                <div className="font-medium">Disbursed</div>
+                                <div className="text-slate-500">{formatDate(advance.disbursedAt)}</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Mileage Tab */}
+          <TabsContent value="mileage" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl mb-1">Mileage Tracking</h2>
+                <p className="text-slate-600">Track personal vehicle usage</p>
+              </div>
+              <Button size="sm" style={{ backgroundColor: COLORS.primary }}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Entry
+              </Button>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Rate</CardTitle>
+                <CardDescription>Company standard mileage rate</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-semibold">₱10.00 / km</div>
+                <div className="text-sm text-slate-500 mt-1">Effective January 2024</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Mileage Entries</CardTitle>
+                <CardDescription>Recent vehicle usage</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {mileageEntries.map(entry => (
+                    <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium">{entry.purpose}</div>
+                        <div className="text-sm text-slate-500 mt-1">
+                          {entry.from} → {entry.to}
+                        </div>
+                        <div className="text-sm text-slate-500">{formatDate(entry.date)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">{entry.distance} km</div>
+                        <div className="text-sm text-slate-500">
+                          @ {formatCurrency(entry.rate)}/km
+                        </div>
+                        <div className="font-medium" style={{ color: COLORS.primary }}>
+                          {formatCurrency(entry.amount)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Features Tab */}
+          <TabsContent value="features">
+            <AppFeatures
+              appName="Travel & Expense"
+              appColor={COLORS.primary}
+              features={[
+                {
+                  name: "Expense Report Management",
+                  description: "Create, submit, and track expense reports with multi-level approval",
+                  status: "active",
+                  category: "Core Functionality"
+                },
+                {
+                  name: "Cash Advance Requests",
+                  description: "Request travel advances and track settlements",
+                  status: "active",
+                  category: "Core Functionality"
+                },
+                {
+                  name: "Receipt Capture",
+                  description: "Mobile OCR receipt scanning and automatic data extraction",
+                  status: "active",
+                  category: "Mobile Features"
+                },
+                {
+                  name: "Mileage Tracking",
+                  description: "Track personal vehicle usage with GPS integration",
+                  status: "active",
+                  category: "Expense Management"
+                },
+                {
+                  name: "Per Diem Calculation",
+                  description: "Automated per diem based on location and duration",
+                  status: "active",
+                  category: "Expense Management"
+                },
+                {
+                  name: "Policy Compliance",
+                  description: "Real-time policy checking and violation flagging",
+                  status: "active",
+                  category: "Compliance"
+                },
+                {
+                  name: "Multi-Currency Support",
+                  description: "Handle expenses in multiple currencies with auto-conversion",
+                  status: "active",
+                  category: "Financial Management"
+                },
+                {
+                  name: "Credit Card Integration",
+                  description: "Import corporate card transactions automatically",
+                  status: "beta",
+                  category: "Integrations"
+                },
+                {
+                  name: "Approval Workflows",
+                  description: "Configurable multi-level approval chains",
+                  status: "active",
+                  category: "Workflow"
+                },
+                {
+                  name: "Settlement Processing",
+                  description: "Track advance settlements and reimbursements",
+                  status: "active",
+                  category: "Financial Management"
+                },
+                {
+                  name: "Analytics Dashboard",
+                  description: "Spend analytics and expense trends",
+                  status: "active",
+                  category: "Analytics"
+                },
+                {
+                  name: "Travel Booking",
+                  description: "Integrated travel booking for flights, hotels, and cars",
+                  status: "planned",
+                  category: "Travel Management"
+                },
+                {
+                  name: "Delegate Access",
+                  description: "Allow assistants to manage expenses on behalf of others",
+                  status: "beta",
+                  category: "User Management"
+                },
+                {
+                  name: "SAP ERP Integration",
+                  description: "Real-time sync with SAP Finance modules",
+                  status: "planned",
+                  category: "Integrations"
+                },
+                {
+                  name: "Audit Trail",
+                  description: "Complete audit history of all transactions",
+                  status: "active",
+                  category: "Compliance"
+                }
+              ]}
+              quickActions={[
+                {
+                  label: "Submit Expense",
+                  description: "Create new expense report",
+                  icon: "📝"
+                },
+                {
+                  label: "Request Advance",
+                  description: "Get cash advance for trip",
+                  icon: "💰"
+                },
+                {
+                  label: "Scan Receipt",
+                  description: "Mobile OCR capture",
+                  icon: "📸"
+                },
+                {
+                  label: "View Reports",
+                  description: "Track submission status",
+                  icon: "📊"
+                }
+              ]}
+            />
           </TabsContent>
         </Tabs>
       </main>

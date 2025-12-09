@@ -8,6 +8,7 @@ import { Badge } from "./components/ui/badge";
 import { Textarea } from "./components/ui/textarea";
 import { Alert, AlertDescription } from "./components/ui/alert";
 import FeatureShowcase from "./components/FeatureShowcase";
+import AppFeatures from "./components/AppFeatures";
 
 // Simple types
 type UserRole = "AM" | "FD";
@@ -39,6 +40,7 @@ interface Quote {
 export default function RateCardProApp() {
   const [user, setUser] = useState<User | null>(null);
   const [showShowcase, setShowShowcase] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [quotes, setQuotes] = useState<Quote[]>([
     {
       id: "Q001",
@@ -66,7 +68,6 @@ export default function RateCardProApp() {
   ]);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
 
   // New quote form state
   const [newQuoteName, setNewQuoteName] = useState("");
@@ -514,9 +515,10 @@ export default function RateCardProApp() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="quotes">Quotes</TabsTrigger>
+            <TabsTrigger value="features">Features</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -649,6 +651,121 @@ export default function RateCardProApp() {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="features" className="space-y-4">
+            <AppFeatures
+              appName="Rate Card Pro"
+              appColor={COLORS.primary}
+              features={[
+                {
+                  name: "Dual-Role Workflow",
+                  description: "Separate interfaces for Account Managers (quote creation) and Finance Directors (approval)",
+                  status: "active",
+                  category: "Core Functionality"
+                },
+                {
+                  name: "Quote Creation & Management",
+                  description: "Create detailed quotes with multiple line items, hourly rates, and automatic calculations",
+                  status: "active",
+                  category: "Core Functionality"
+                },
+                {
+                  name: "Approval Workflows",
+                  description: "Submit quotes for FD approval with status tracking (draft, submitted, approved, rejected)",
+                  status: "active",
+                  category: "Core Functionality"
+                },
+                {
+                  name: "Line Item Management",
+                  description: "Add, edit, and remove service line items with hours and rates",
+                  status: "active",
+                  category: "Core Functionality"
+                },
+                {
+                  name: "Automatic Calculations",
+                  description: "Real-time subtotal, tax (12%), and total calculations",
+                  status: "active",
+                  category: "Calculations"
+                },
+                {
+                  name: "Dashboard Analytics",
+                  description: "View quote statistics by status (draft, submitted, approved)",
+                  status: "active",
+                  category: "Analytics"
+                },
+                {
+                  name: "Recent Activity Feed",
+                  description: "Track recent quote submissions and approvals",
+                  status: "active",
+                  category: "Analytics"
+                },
+                {
+                  name: "Role-Based Access",
+                  description: "Different permissions for AM (create/submit) and FD (review/approve)",
+                  status: "active",
+                  category: "Security"
+                },
+                {
+                  name: "Mobile-First Design",
+                  description: "Fully responsive interface optimized for mobile devices",
+                  status: "active",
+                  category: "User Experience"
+                },
+                {
+                  name: "PDF Export",
+                  description: "Generate PDF proposals from approved quotes",
+                  status: "planned",
+                  category: "Export & Reporting"
+                },
+                {
+                  name: "Client Database",
+                  description: "Manage client information and quote history",
+                  status: "planned",
+                  category: "Data Management"
+                },
+                {
+                  name: "Template Library",
+                  description: "Save and reuse common quote templates",
+                  status: "planned",
+                  category: "Productivity"
+                },
+                {
+                  name: "Email Notifications",
+                  description: "Automated notifications for quote submissions and approvals",
+                  status: "beta",
+                  category: "Notifications"
+                },
+                {
+                  name: "Version History",
+                  description: "Track changes and revisions to quotes",
+                  status: "planned",
+                  category: "Data Management"
+                }
+              ]}
+              quickActions={[
+                {
+                  label: "Create New Quote",
+                  description: user.role === "AM" ? "Start a new quote for a client project" : "View and approve pending quotes",
+                  icon: "📝"
+                },
+                {
+                  label: "View Pending Approvals",
+                  description: `${submittedCount} quote${submittedCount !== 1 ? 's' : ''} awaiting review`,
+                  icon: "⏳"
+                },
+                {
+                  label: "Export Reports",
+                  description: "Download quote summaries and analytics",
+                  icon: "📊"
+                },
+                {
+                  label: "Manage Templates",
+                  description: "Create reusable quote templates",
+                  icon: "🗂️"
+                }
+              ]}
+            />
           </TabsContent>
         </Tabs>
       </main>

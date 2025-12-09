@@ -7,8 +7,7 @@ Enterprise-grade application suite for agency operations, currently featuring:
 1. **Rate Card Pro** - Quote & proposal management (AM/FD workflow)
 2. **Travel & Expense (T&E)** - SAP Concur-style expense management
 3. **Gearroom** - Cheqroom-style equipment management
-4. **Procure** - SAP SRM-style vendor rate governance
-5. **Coming Soon:** Scout (Strategic Intelligence)
+4. **Coming Soon:** Scout (Strategic Intelligence)
 
 ---
 
@@ -28,7 +27,6 @@ Access the launcher at `http://localhost:5173`
 - **Rate Card Pro** - Quote creation, approval workflows, line items, analytics
 - **Travel & Expense** - Expense reports, cash advances, settlement, SAP-style analytics
 - **Gearroom** - Equipment catalog, check-out/check-in, maintenance tracking, utilization analytics
-- **Procure** - Vendor rate cards, AI Rate Advisor, project quotes with role-based visibility
 
 ---
 
@@ -47,33 +45,27 @@ Access the launcher at `http://localhost:5173`
 
 ```
 /
-├── App.tsx                     # 4-app launcher
-├── RateCardProApp.tsx          # Rate Card Pro application
-├── TEApp.tsx                   # Travel & Expense application
-├── GearApp.tsx                 # Gearroom application
-├── ProcureApp.tsx              # Procure application ⭐ NEW
+├── App.tsx                    # App launcher
+├── RateCardProApp.tsx         # Rate Card Pro application
+├── TEApp.tsx                  # Travel & Expense application
+├── GearApp.tsx                # Gearroom application
 ├── components/
-│   ├── te/                     # T&E specific components
+│   ├── te/                    # T&E specific components
 │   │   ├── ExpenseReportForm.tsx
 │   │   ├── CashAdvanceForm.tsx
 │   │   └── TEAnalyticsDashboard.tsx
-│   ├── gear/                   # Gearroom specific components
+│   ├── gear/                  # Gearroom specific components
 │   │   ├── ItemCatalog.tsx
 │   │   ├── CheckoutForm.tsx
 │   │   └── GearAnalyticsDashboard.tsx
-│   ├── procure/                # Procure specific components ⭐ NEW
-│   │   ├── RateCardManager.tsx
-│   │   ├── ProjectQuoteBuilder.tsx
-│   │   └── RateAdvisorWizard.tsx
-│   ├── ui/                     # Shared UI components
-│   └── FeatureShowcase.tsx     # Marketing showcase
+│   ├── ui/                    # Shared UI components
+│   └── FeatureShowcase.tsx    # Marketing showcase
 ├── docs/
-│   ├── README.md               # This file
-│   ├── te-database-schema.md   # T&E database design
+│   ├── README.md              # This file
+│   ├── te-database-schema.md  # T&E database design
 │   ├── gear-database-schema.md # Gearroom database design
-│   ├── procure-database-schema.md # ⭐ Procure database design
-│   ├── aihub-rag-assistant.md  # AI assistant architecture
-│   └── ocr-integration.md      # OCR service documentation
+│   ├── aihub-rag-assistant.md # AI assistant architecture
+│   └── ocr-integration.md     # OCR service documentation
 └── styles/
     └── globals.css
 ```
@@ -96,19 +88,13 @@ Access the launcher at `http://localhost:5173`
    - Maintenance tracking, deposits
    - Utilization analytics, kit management
 
-3. **[Procure Database Schema](./procure-database-schema.md)**
-   - Complete PostgreSQL schema for Vendor Rate Governance
-   - Vendor rate cards, project quotes
-   - AI Rate Advisor, contract management
-   - Compliance checks
-
-4. **[AIHub RAG Assistant](./aihub-rag-assistant.md)**
+3. **[AIHub RAG Assistant](./aihub-rag-assistant.md)**
    - Notion-style AI assistant architecture
    - Workspace scoping (TE, GEAR, GLOBAL)
    - Knowledge corpus building (ETL)
    - RAG query API and React components
 
-5. **[OCR Integration](./ocr-integration.md)**
+4. **[OCR Integration](./ocr-integration.md)**
    - Self-hosted OCR microservice
    - PaddleOCR + LLM field extraction
    - T&E receipt processing
@@ -200,14 +186,6 @@ Access the launcher at `http://localhost:5173`
 - ✅ Overdue alerts
 - 🔄 QR code scanning (future)
 - 🔄 AI assistant (future)
-
-### Procure
-- ✅ Vendor rate cards
-- ✅ AI Rate Advisor
-- ✅ Project quotes with role-based visibility
-- ✅ Vendor management
-- ✅ Contract management
-- ✅ Compliance checks
 
 ### AI & Automation (Future)
 - 🔜 Notion-style RAG assistant (TE & Gear workspaces)
@@ -313,11 +291,6 @@ npm run test:e2e          # E2E tests (Playwright)
    - Track maintenance jobs
    - Check utilization analytics
 
-4. **Procure App**
-   - Login as Admin → Manage vendor rate cards
-   - Use AI Rate Advisor to get rate recommendations
-   - Create project quotes with role-based visibility
-
 ---
 
 ## Deployment
@@ -405,14 +378,12 @@ Proprietary - TBWA Worldwide © 2025
 ### 2025-12-07
 - ✅ Initial T&E app implementation
 - ✅ Gearroom app implementation
-- ✅ Procure app implementation (SAP SRM-style vendor rate governance)
 - ✅ Rate Card Pro integration
-- ✅ App launcher with 4 apps
-- ✅ Complete documentation suite (T&E + Gearroom + Procure)
-- ✅ Database schema designs (T&E + Gearroom + Procure)
+- ✅ App launcher with 3 apps
+- ✅ Complete documentation suite (T&E + Gearroom)
+- ✅ Database schema designs (T&E + Gearroom)
 - ✅ AI RAG architecture
 - ✅ OCR integration plan
-- ✅ AI Rate Advisor (stubbed for Procure)
 
 ### Future Releases
 - 2025-Q1: AI assistant + OCR deployment
