@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Subproject Views -->
+    <record id="ipai_subproject_tree" model="ir.ui.view">
+        <field name="name">ipai.subproject.tree</field>
+        <field name="model">ipai.subproject</field>
+        <field name="arch" type="xml">
+            <tree string="Subprojects">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="child_project_id"/>
+                <field name="start_date"/>
+                <field name="finish_date"/>
+                <field name="task_count"/>
+                <field name="progress" widget="progressbar"/>
+                <field name="master_project_id" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="ipai_subproject_form" model="ir.ui.view">
+        <field name="name">ipai.subproject.form</field>
+        <field name="model">ipai.subproject</field>
+        <field name="arch" type="xml">
+            <form string="Subproject">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Link Configuration">
+                            <field name="master_project_id"/>
+                            <field name="child_project_id"/>
+                            <field name="proxy_task_id" readonly="1"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group string="Subproject Status">
+                            <field name="start_date"/>
+                            <field name="finish_date"/>
+                            <field name="task_count"/>
+                            <field name="progress" widget="progressbar"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="action_open_subproject" string="Open Subproject" type="object" class="btn-primary"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Subproject Wizard -->
+    <record id="ipai_subproject_wizard_form" model="ir.ui.view">
+        <field name="name">ipai.subproject.wizard.form</field>
+        <field name="model">ipai.subproject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add Subprojects">
+                <group>
+                    <field name="master_project_id" readonly="1"/>
+                    <field name="project_ids" widget="many2many_tags"/>
+                </group>
+                <footer>
+                    <button name="action_add" string="Add Subprojects" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Extended Project Form - Subprojects Section -->
+    <record id="ipai_project_form_subprojects" model="ir.ui.view">
+        <field name="name">project.project.form.subprojects</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_subprojects" type="object" class="oe_stat_button" icon="fa-sitemap">
+                    <field name="subproject_count" widget="statinfo" string="Subprojects"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Subprojects" name="subprojects" invisible="subproject_count == 0">
+                    <field name="subproject_ids">
+                        <tree>
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"/>
+                            <field name="start_date"/>
+                            <field name="finish_date"/>
+                            <field name="task_count"/>
+                            <field name="progress" widget="progressbar"/>
+                        </tree>
+                    </field>
+                    <group>
+                        <button name="action_add_subprojects" string="Add Subprojects" type="object" class="btn-secondary"/>
+                    </group>
+                </page>
+                <page string="Parent Projects" name="parent_projects" invisible="not parent_project_ids">
+                    <field name="parent_project_ids" readonly="1">
+                        <tree>
+                            <field name="master_project_id"/>
+                            <field name="proxy_task_id"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Action for Subprojects -->
+    <record id="action_ipai_subprojects" model="ir.actions.act_window">
+        <field name="name">Subprojects</field>
+        <field name="res_model">ipai.subproject</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Link projects as subprojects to create a master project
+            </p>
+        </field>
+    </record>
+</odoo>

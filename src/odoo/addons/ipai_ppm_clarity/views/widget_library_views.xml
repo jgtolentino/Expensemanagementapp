@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Widget Library Views -->
+    <record id="ipai_widget_library_tree" model="ir.ui.view">
+        <field name="name">ipai.widget.library.tree</field>
+        <field name="model">ipai.widget.library</field>
+        <field name="arch" type="xml">
+            <tree string="Widget Library">
+                <field name="name"/>
+                <field name="widget_type"/>
+                <field name="target_model"/>
+                <field name="operation"/>
+                <field name="in_library" widget="boolean_toggle"/>
+                <field name="created_by_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="ipai_widget_library_form" model="ir.ui.view">
+        <field name="name">ipai.widget.library.form</field>
+        <field name="model">ipai.widget.library</field>
+        <field name="arch" type="xml">
+            <form string="Widget Library">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_ipai_canvas_widget)d" type="action" class="oe_stat_button" icon="fa-th-large">
+                            <span>Use Widget</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Widget Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Widget Configuration">
+                            <field name="widget_type"/>
+                            <field name="target_model"/>
+                            <field name="operation"/>
+                            <field name="format_type"/>
+                            <field name="color" widget="color"/>
+                        </group>
+                        <group string="Data Options">
+                            <field name="group_by_field"/>
+                            <field name="aggregate_field"/>
+                            <field name="sort_order"/>
+                        </group>
+                    </group>
+                    <group string="Filters">
+                        <field name="filters_json" widget="ace" options="{'mode': 'json'}"/>
+                    </group>
+                    <group>
+                        <group string="Sharing">
+                            <field name="in_library"/>
+                            <field name="created_by_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="ipai_widget_library_search" model="ir.ui.view">
+        <field name="name">ipai.widget.library.search</field>
+        <field name="model">ipai.widget.library</field>
+        <field name="arch" type="xml">
+            <search string="Widget Library">
+                <field name="name"/>
+                <field name="widget_type"/>
+                <field name="target_model"/>
+                <filter name="my_widgets" string="My Widgets" domain="[('created_by_id', '=', uid)]"/>
+                <filter name="library" string="Shared Library" domain="[('in_library', '=', True)]"/>
+                <separator/>
+                <filter name="number_tiles" string="Number Tiles" domain="[('widget_type', '=', 'number_tile')]"/>
+                <filter name="charts" string="Charts" domain="[('widget_type', 'in', ['pie', 'bar'])]"/>
+                <filter name="tables" string="Tables" domain="[('widget_type', '=', 'table')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Widget Type" name="group_widget_type" context="{'group_by': 'widget_type'}"/>
+                    <filter string="Target Model" name="group_target_model" context="{'group_by': 'target_model'}"/>
+                    <filter string="Created By" name="group_created_by" context="{'group_by': 'created_by_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Target Widget Views -->
+    <record id="ipai_target_widget_tree" model="ir.ui.view">
+        <field name="name">ipai.target.widget.tree</field>
+        <field name="model">ipai.target.widget</field>
+        <field name="arch" type="xml">
+            <tree string="Target Widgets">
+                <field name="name"/>
+                <field name="canvas_id"/>
+                <field name="target_type"/>
+                <field name="target_field"/>
+                <field name="target_value"/>
+                <field name="actual_value"/>
+                <field name="variance"/>
+                <field name="status" decoration-success="status == 'on_track'" decoration-warning="status == 'at_risk'" decoration-danger="status == 'off_track'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="ipai_target_widget_form" model="ir.ui.view">
+        <field name="name">ipai.target.widget.form</field>
+        <field name="model">ipai.target.widget</field>
+        <field name="arch" type="xml">
+            <form string="Target Widget">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Target Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Target Configuration">
+                            <field name="canvas_id"/>
+                            <field name="target_type"/>
+                            <field name="target_field"/>
+                            <field name="color" widget="color"/>
+                        </group>
+                        <group string="Values">
+                            <field name="target_value"/>
+                            <field name="actual_value"/>
+                            <field name="variance"/>
+                            <field name="status" decoration-success="status == 'on_track'" decoration-warning="status == 'at_risk'" decoration-danger="status == 'off_track'"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_ipai_widget_library" model="ir.actions.act_window">
+        <field name="name">Widget Library</field>
+        <field name="res_model">ipai.widget.library</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="ipai_widget_library_search"/>
+        <field name="context">{'search_default_library': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create reusable widgets for your Canvas dashboards
+            </p>
+            <p>
+                Widgets in the library can be shared across all users and added to any Canvas.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_ipai_my_widgets" model="ir.actions.act_window">
+        <field name="name">My Widgets</field>
+        <field name="res_model">ipai.widget.library</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="ipai_widget_library_search"/>
+        <field name="context">{'search_default_my_widgets': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your own widgets
+            </p>
+            <p>
+                You can share your widgets with others by enabling "In Widget Library".
+            </p>
+        </field>
+    </record>
+
+    <record id="action_ipai_target_widgets" model="ir.actions.act_window">
+        <field name="name">Target Widgets</field>
+        <field name="res_model">ipai.target.widget</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add targets (goals or constraints) to your Canvas
+            </p>
+        </field>
+    </record>
+</odoo>

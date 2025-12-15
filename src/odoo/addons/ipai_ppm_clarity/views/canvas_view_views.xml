@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Canvas View (Saved Views) Tree View -->
+    <record id="ipai_canvas_view_view_tree" model="ir.ui.view">
+        <field name="name">ipai.canvas.view.view.tree</field>
+        <field name="model">ipai.canvas.view</field>
+        <field name="arch" type="xml">
+            <tree string="Saved Views">
+                <field name="name"/>
+                <field name="canvas_id"/>
+                <field name="project_id"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="is_default" widget="boolean_toggle"/>
+                <field name="is_favorite" widget="boolean_toggle"/>
+                <field name="is_shared" widget="boolean_toggle"/>
+                <field name="layout_columns"/>
+                <field name="write_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Canvas View (Saved Views) Form View -->
+    <record id="ipai_canvas_view_view_form" model="ir.ui.view">
+        <field name="name">ipai.canvas.view.view.form</field>
+        <field name="model">ipai.canvas.view</field>
+        <field name="arch" type="xml">
+            <form string="Saved View">
+                <header>
+                    <button name="action_set_default" string="Set as Default" type="object" invisible="is_default == True"/>
+                    <button name="action_toggle_favorite" string="Toggle Favorite" type="object"/>
+                    <button name="action_toggle_shared" string="Toggle Shared" type="object"/>
+                    <button name="apply_view" string="Apply View" type="object" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Default" bg_color="bg-success" invisible="is_default == False"/>
+                    <widget name="web_ribbon" title="Shared" bg_color="bg-info" invisible="is_shared == False" attrs="{'invisible': [('is_default', '=', True)]}"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="View Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="canvas_id"/>
+                            <field name="project_id" readonly="1"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                        </group>
+                        <group>
+                            <field name="is_default"/>
+                            <field name="is_favorite"/>
+                            <field name="is_shared"/>
+                            <field name="layout_columns"/>
+                        </group>
+                    </group>
+                    <group string="Saved State">
+                        <group>
+                            <field name="search_text"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Configuration" name="config">
+                            <field name="config_json" widget="ace" options="{'mode': 'json'}"/>
+                        </page>
+                        <page string="Filters" name="filters">
+                            <field name="filters_json" widget="ace" options="{'mode': 'json'}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Canvas View Search View -->
+    <record id="ipai_canvas_view_view_search" model="ir.ui.view">
+        <field name="name">ipai.canvas.view.view.search</field>
+        <field name="model">ipai.canvas.view</field>
+        <field name="arch" type="xml">
+            <search string="Search Saved Views">
+                <field name="name"/>
+                <field name="canvas_id"/>
+                <field name="project_id"/>
+                <field name="user_id"/>
+                <filter string="My Views" name="my_views" domain="[('user_id', '=', uid)]"/>
+                <filter string="Default" name="default" domain="[('is_default', '=', True)]"/>
+                <filter string="Favorites" name="favorites" domain="[('is_favorite', '=', True)]"/>
+                <filter string="Shared" name="shared" domain="[('is_shared', '=', True)]"/>
+                <separator/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Canvas" name="canvas" context="{'group_by': 'canvas_id'}"/>
+                    <filter string="Project" name="project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Owner" name="owner" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="ipai_canvas_view_action" model="ir.actions.act_window">
+        <field name="name">Saved Views</field>
+        <field name="res_model">ipai.canvas.view</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="ipai_canvas_view_view_search"/>
+        <field name="context">{'search_default_my_views': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Save your first canvas view
+            </p>
+            <p>
+                Saved views store your canvas layout and filter preferences.
+            </p>
+        </field>
+    </record>
+</odoo>

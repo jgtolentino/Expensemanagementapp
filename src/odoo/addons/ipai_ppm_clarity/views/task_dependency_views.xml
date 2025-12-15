@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Task Dependency Tree View -->
+    <record id="ipai_task_dependency_view_tree" model="ir.ui.view">
+        <field name="name">ipai.task.dependency.view.tree</field>
+        <field name="model">ipai.task.dependency</field>
+        <field name="arch" type="xml">
+            <tree string="Dependencies" editable="bottom">
+                <field name="predecessor_id"/>
+                <field name="successor_id"/>
+                <field name="dependency_type"/>
+                <field name="lag_days"/>
+                <field name="project_id"/>
+                <field name="is_valid" widget="boolean"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Task Dependency Form View -->
+    <record id="ipai_task_dependency_view_form" model="ir.ui.view">
+        <field name="name">ipai.task.dependency.view.form</field>
+        <field name="model">ipai.task.dependency</field>
+        <field name="arch" type="xml">
+            <form string="Task Dependency">
+                <sheet>
+                    <group>
+                        <group string="Tasks">
+                            <field name="predecessor_id"/>
+                            <field name="successor_id"/>
+                            <field name="project_id" readonly="1"/>
+                        </group>
+                        <group string="Dependency Settings">
+                            <field name="dependency_type"/>
+                            <field name="lag_days"/>
+                            <field name="is_valid" widget="boolean"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        <strong>Dependency Types:</strong>
+                        <ul>
+                            <li><strong>FS (Finish-to-Start):</strong> Successor starts after predecessor finishes</li>
+                            <li><strong>SS (Start-to-Start):</strong> Successor starts when predecessor starts</li>
+                            <li><strong>FF (Finish-to-Finish):</strong> Successor finishes when predecessor finishes</li>
+                            <li><strong>SF (Start-to-Finish):</strong> Successor finishes after predecessor starts</li>
+                        </ul>
+                        <p><strong>Lag:</strong> Positive values add delay, negative values create lead time.</p>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Task Dependency Search View -->
+    <record id="ipai_task_dependency_view_search" model="ir.ui.view">
+        <field name="name">ipai.task.dependency.view.search</field>
+        <field name="model">ipai.task.dependency</field>
+        <field name="arch" type="xml">
+            <search string="Search Dependencies">
+                <field name="predecessor_id"/>
+                <field name="successor_id"/>
+                <field name="project_id"/>
+                <filter string="Finish-to-Start" name="fs" domain="[('dependency_type', '=', 'FS')]"/>
+                <filter string="Start-to-Start" name="ss" domain="[('dependency_type', '=', 'SS')]"/>
+                <filter string="Finish-to-Finish" name="ff" domain="[('dependency_type', '=', 'FF')]"/>
+                <filter string="Start-to-Finish" name="sf" domain="[('dependency_type', '=', 'SF')]"/>
+                <separator/>
+                <filter string="With Lag" name="with_lag" domain="[('lag_days', '!=', 0)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Project" name="project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Type" name="type" context="{'group_by': 'dependency_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="ipai_task_dependency_action" model="ir.actions.act_window">
+        <field name="name">Task Dependencies</field>
+        <field name="res_model">ipai.task.dependency</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="ipai_task_dependency_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create task dependencies
+            </p>
+            <p>
+                Dependencies define relationships between tasks for scheduling.
+            </p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,107 @@
+# IPAI PPM Clarity - AI Skill Configuration
+# clarity_canvas_expert: Explains Clarity Canvas, Tasks, and Autoschedule features
+
+name: clarity_canvas_expert
+version: 1.0.0
+description: |
+  Expert assistant for Clarity Canvas & Task Engine features in ipai_ppm_clarity.
+  Explains how Clarity 16.1.1 Canvas, Tasks, Phases, Milestones, To-Dos, and Autoschedule
+  work, and how the ipai_ppm_clarity module implements these features.
+
+author: IPAI / TBWA
+category: project_management
+
+# Skill capabilities
+capabilities:
+  - explain_canvas_features
+  - explain_task_management
+  - explain_autoschedule
+  - explain_critical_path
+  - explain_widget_types
+  - explain_saved_views
+  - answer_implementation_questions
+
+# Knowledge domains
+domains:
+  - clarity_canvas
+  - project_management
+  - wbs_hierarchy
+  - gantt_scheduling
+  - critical_path_method
+
+# Triggers - when to activate this skill
+triggers:
+  - pattern: "canvas.*widget"
+  - pattern: "autoschedule"
+  - pattern: "critical path"
+  - pattern: "WBS|work breakdown"
+  - pattern: "phase.*task|milestone"
+  - pattern: "clarity.*feature"
+  - pattern: "gantt|timeline"
+  - pattern: "dependency.*FS|SS|FF|SF"
+
+# Tools available to this skill
+tools:
+  - name: retriever
+    type: vector_search
+    config:
+      collection: clarity_docs
+      embedding_model: text-embedding-3-small
+      top_k: 5
+
+  - name: code_search
+    type: grep
+    config:
+      paths:
+        - src/odoo/addons/ipai_ppm_clarity
+        - src/apps/ppm-canvas
+      extensions:
+        - py
+        - tsx
+        - ts
+
+# Prompt template
+system_prompt: |
+  You are a Clarity Canvas & Task Engine expert assistant.
+
+  You have deep knowledge of:
+  1. **Clarity 16.1.1 Canvas** - Dashboard widgets, layouts, saved views
+  2. **Task Management** - Phases, milestones, tasks, to-dos, WBS hierarchy
+  3. **Autoschedule** - Critical Path Method (CPM), forward/backward pass, float calculation
+  4. **Dependencies** - FS, SS, FF, SF with lag support
+  5. **ipai_ppm_clarity** - Our Odoo 18 CE implementation of Clarity features
+
+  When answering questions:
+  - Reference specific Clarity behaviors and how we implement them
+  - Explain the data model (Odoo models, fields, relationships)
+  - Point to relevant code files when discussing implementation
+  - Distinguish between what Clarity does and what our module supports
+
+  Key module files:
+  - `models/canvas.py` - Canvas dashboard model
+  - `models/canvas_widget.py` - Widget definitions and data evaluation
+  - `models/project_task_ext.py` - Extended task with WBS, CPM fields
+  - `models/task_dependency.py` - Dependency relationships
+  - `services/autoschedule_service.py` - CPM autoschedule algorithm
+
+  Widget types: number_tile, progress_ring, pie, bar, table
+  Dependency types: FS (Finish-to-Start), SS, FF, SF with lag
+  Task types: task, phase, milestone, summary
+
+# Response format
+response_format:
+  style: technical
+  include_code_references: true
+  include_examples: true
+
+# Fallback behavior
+fallback:
+  message: |
+    I don't have specific information about that. For Clarity Canvas and Task
+    features, I recommend checking the ipai_ppm_clarity module documentation
+    or the official Clarity 16.1.1 documentation.
+
+# Caching configuration
+cache:
+  enabled: true
+  ttl: 3600  # 1 hour

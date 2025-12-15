@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Root Menu -->
+    <menuitem
+        id="menu_ipai_ppm_clarity_root"
+        name="Clarity PPM"
+        web_icon="ipai_ppm_clarity,static/description/icon.png"
+        sequence="5"/>
+
+    <!-- Dashboard/Canvas Menu -->
+    <menuitem
+        id="menu_clarity_canvas"
+        name="Canvas"
+        parent="menu_ipai_ppm_clarity_root"
+        sequence="10"/>
+
+    <menuitem
+        id="menu_clarity_canvas_list"
+        name="All Canvases"
+        parent="menu_clarity_canvas"
+        action="ipai_canvas_action"
+        sequence="10"/>
+
+    <menuitem
+        id="menu_clarity_canvas_widgets"
+        name="Widgets"
+        parent="menu_clarity_canvas"
+        action="ipai_canvas_widget_action"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_clarity_canvas_views"
+        name="Saved Views"
+        parent="menu_clarity_canvas"
+        action="ipai_canvas_view_action"
+        sequence="30"/>
+
+    <menuitem
+        id="menu_clarity_widget_library"
+        name="Widget Library"
+        parent="menu_clarity_canvas"
+        action="action_ipai_widget_library"
+        sequence="40"/>
+
+    <menuitem
+        id="menu_clarity_my_widgets"
+        name="My Widgets"
+        parent="menu_clarity_canvas"
+        action="action_ipai_my_widgets"
+        sequence="50"/>
+
+    <!-- Tasks Menu -->
+    <menuitem
+        id="menu_clarity_tasks"
+        name="Tasks"
+        parent="menu_ipai_ppm_clarity_root"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_clarity_tasks_wbs"
+        name="WBS Tasks"
+        parent="menu_clarity_tasks"
+        action="ipai_project_task_wbs_action"
+        sequence="10"/>
+
+    <menuitem
+        id="menu_clarity_tasks_todos"
+        name="To-Dos"
+        parent="menu_clarity_tasks"
+        action="ipai_task_todo_action"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_clarity_tasks_dependencies"
+        name="Dependencies"
+        parent="menu_clarity_tasks"
+        action="ipai_task_dependency_action"
+        sequence="30"/>
+
+    <!-- Planning Menu -->
+    <menuitem
+        id="menu_clarity_planning"
+        name="Planning"
+        parent="menu_ipai_ppm_clarity_root"
+        sequence="30"/>
+
+    <menuitem
+        id="menu_clarity_phases"
+        name="Phases"
+        parent="menu_clarity_planning"
+        action="ipai_project_phase_action"
+        sequence="10"/>
+
+    <menuitem
+        id="menu_clarity_baselines"
+        name="Baselines"
+        parent="menu_clarity_planning"
+        action="action_ipai_project_baselines"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_clarity_subprojects"
+        name="Subprojects"
+        parent="menu_clarity_planning"
+        action="action_ipai_subprojects"
+        sequence="30"/>
+
+    <!-- Configuration Menu -->
+    <menuitem
+        id="menu_clarity_config"
+        name="Configuration"
+        parent="menu_ipai_ppm_clarity_root"
+        sequence="100"
+        groups="project.group_project_manager"/>
+
+    <!-- Add Canvas button to Project form -->
+    <record id="project_project_view_form_clarity" model="ir.ui.view">
+        <field name="name">project.project.view.form.clarity</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" name="action_view_canvas" type="object" icon="fa-th-large">
+                    <field name="canvas_count" widget="statinfo" string="Canvases"/>
+                </button>
+                <button class="oe_stat_button" name="action_view_phases" type="object" icon="fa-sitemap">
+                    <field name="phase_count" widget="statinfo" string="Phases"/>
+                </button>
+            </xpath>
+
+            <!-- Add autoschedule buttons -->
+            <xpath expr="//header" position="inside">
+                <button name="action_autoschedule_tentative" string="Autoschedule (Draft)" type="object" icon="fa-calendar" groups="ipai_ppm_clarity.group_clarity_scheduler"/>
+                <button name="action_run_autoschedule" string="Autoschedule Now" type="object" icon="fa-bolt" groups="ipai_ppm_clarity.group_clarity_scheduler"/>
+            </xpath>
+
+            <!-- Add tentative schedule banner -->
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-warning" role="alert" invisible="has_tentative_schedule == False">
+                    <strong>Tentative Schedule Active</strong> - Review and publish or discard the tentative schedule.
+                    <button name="action_autoschedule_publish" string="Publish" type="object" class="btn-primary btn-sm ms-2"/>
+                    <button name="action_autoschedule_discard" string="Discard" type="object" class="btn-secondary btn-sm ms-1"/>
+                </div>
+            </xpath>
+
+            <!-- Add Clarity settings tab -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Clarity Settings" name="clarity_settings" groups="ipai_ppm_clarity.group_clarity_scheduler">
+                    <group>
+                        <group string="Autoschedule">
+                            <field name="autoschedule_enabled"/>
+                            <field name="schedule_from" widget="radio"/>
+                            <field name="project_start_date"/>
+                            <field name="project_finish_date"/>
+                        </group>
+                        <group string="Constraints">
+                            <field name="ignore_tasks_before"/>
+                            <field name="ignore_tasks_after"/>
+                            <field name="respect_resource_constraints"/>
+                        </group>
+                    </group>
+                    <group string="Critical Path Summary">
+                        <group>
+                            <field name="critical_path_length"/>
+                            <field name="critical_task_count"/>
+                            <field name="has_tentative_schedule"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
